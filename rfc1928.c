@@ -191,7 +191,7 @@ char *atyp_str(Atyp atyp)
 	switch (atyp) {
 	case ATYP_IPV4:        return "IPV4";
 	case ATYP_IPV6:        return "IPV6";
-	case ATYP_DOMAIN_NAME: return "DOMAIN_NAME";
+	case ATYP_DOMAIN_NAME: return "DOMAIN NAME";
 	default:               return "?";
 	}
 }
@@ -201,10 +201,10 @@ char *rep_str(Rep rep)
 	switch (rep) {
 	case REP_OK:                 return "OK";
 	case REP_FAIL:               return "FAIL";
-	case REP_ATYP_NOT_SUPPORTED: return "ATYP_NOT_SUPPORTED";
-	case REP_CMD_NOT_SUPPORTED:  return "CMD_NOT_SUPPORTED";
-	case REP_HOST_UNREACHABLE:   return "HOST_UNREACHABLE";
-	case REP_CONNECTION_REFUSED: return "CONNECTION_REFUSED";
+	case REP_ATYP_NOT_SUPPORTED: return "ATYP NOT SUPPORTED";
+	case REP_CMD_NOT_SUPPORTED:  return "CMD NOT SUPPORTED";
+	case REP_HOST_UNREACHABLE:   return "HOST UNREACHABLE";
+	case REP_CONNECTION_REFUSED: return "CONNECTION REFUSED";
 	default:                     return "?";
 	}
 }
@@ -212,9 +212,9 @@ char *rep_str(Rep rep)
 char *auth_method_str(AuthMethod method)
 {
 	switch (method) {
-	case USERPASS_AUTH:       return "USERPASS_AUTH";
-	case NO_AUTH:             return "NO_AUTH";
-	case INVALID_AUTH_METHOD: return "INVALID_AUTH_METHOD";
+	case USERPASS_AUTH:       return "USER:PASS AUTH";
+	case NO_AUTH:             return "NO AUTH";
+	case INVALID_AUTH_METHOD: return "INVALID AUTH METHOD";
 	default:                  return "?";
 	}
 }

@@ -65,10 +65,10 @@ int main(int argc, char **argv)
 		die("could not create server");
 
 	if (ctx.flags & FLAG_NO_AUTH)
-		puts("accepting NO AUTH");
+		printf("accepting %s\n", auth_method_str(NO_AUTH));
 
 	if (ctx.flags & FLAG_USERPASS_AUTH)
-		puts("accepting USERPASS AUTH");
+		printf("accepting %s\n", auth_method_str(USERPASS_AUTH));
 
 	if (!(ctx.flags & (FLAG_NO_AUTH | FLAG_USERPASS_AUTH)))
 		die("no auth method provided, exiting\n%s -h for help", argv[0]);
