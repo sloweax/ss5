@@ -70,7 +70,7 @@ int socks5_server_auth_userpass(const Socks5ServerCtx *ctx, int fd)
 	return status == 0 ? 0 : 1;
 }
 
-void socks5_handler(const Socks5ServerCtx *ctx, int fd)
+void socks5_server_handler(const Socks5ServerCtx *ctx, int fd)
 {
 	AuthMethod method;
 

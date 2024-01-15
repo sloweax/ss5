@@ -64,7 +64,7 @@ void socks5_ctx_free(Socks5ServerCtx *ctx);
 int socks5_server_add_userpass(Socks5ServerCtx *ctx, char *userpass);
 // returns 0 on success
 int socks5_server_auth_userpass(const Socks5ServerCtx *ctx, int fd);
-void socks5_handler(const Socks5ServerCtx *ctx, int fd);
+void socks5_server_handler(const Socks5ServerCtx *ctx, int fd);
 
 // returns -1 on error
 int create_tcp_server(const char *host, const char *port, int backlog);

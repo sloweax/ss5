@@ -141,7 +141,7 @@ int main(int argc, char **argv)
 
 			close(serverfd);
 
-			socks5_handler(&ctx, cfd);
+			socks5_server_handler(&ctx, cfd);
 
 			close(cfd);
 
