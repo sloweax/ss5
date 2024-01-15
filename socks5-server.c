@@ -36,6 +36,7 @@ int main(int argc, char **argv)
 		switch(opt) {
 		case 'U':
 			{
+				ctx.flags |= FLAG_USERPASS_AUTH;
 				char *line = NULL;
 				size_t len;
 				ssize_t read;
@@ -51,7 +52,6 @@ int main(int argc, char **argv)
 					if (read == 0) continue;
 					if (socks5_server_add_userpass(&ctx, line) != 0)
 						die("socks5_server_add_userpass:");
-					ctx.flags |= FLAG_USERPASS_AUTH;
 				}
 
 				if (line) free(line);
