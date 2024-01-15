@@ -4,6 +4,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -31,8 +32,32 @@ int main(int argc, char **argv)
 	if (socks5_server_ctx_init(&ctx) != 0)
 		die("socks5_server_ctx_init:");
 
-	while((opt = getopt(argc, argv, ":l:p:hnu:")) != -1) {
+	while((opt = getopt(argc, argv, ":l:p:hnu:U:")) != -1) {
 		switch(opt) {
+		case 'U':
+			{
+				char *line = NULL;
+				size_t len;
+				ssize_t read;
+				FILE *uf = fopen(optarg, "r");
+				if (uf == NULL)
+					die("fopen:");
+
+				while ((read = getline(&line, &len, uf)) != -1) {
+					if (line[read - 1] == '\n') {
+						line[read - 1] = 0;
+						read--;
+					}
+					if (read == 0) continue;
+					if (socks5_server_add_userpass(&ctx, line) != 0)
+						die("socks5_server_add_userpass:");
+					ctx.flags |= FLAG_USERPASS_AUTH;
+				}
+
+				if (line) free(line);
+				fclose(uf);
+			}
+			break;
 		case 'u':
 			ctx.flags |= FLAG_USERPASS_AUTH;
 			if (socks5_server_add_userpass(&ctx, optarg) != 0)
@@ -48,6 +73,7 @@ int main(int argc, char **argv)
 				"     -h                  shows usage and exits\n"
 				"     -n                  allow NO AUTH\n"
 				"     -u user:pass        add user:pass\n"
+				"     -U file             add all user:pass from file\n"
 				"     -p port             listen on port ("PORT" by default)\n"
 				"     -l host             listen on host ("HOST" by default)"
 			, argv[0]);
