@@ -7,7 +7,7 @@ CFLAGS=-Wall -O2
 socks5-server: socks5-server.o util.o rfc1928.o ll.o
 	$(CC) $(CFLAGS) $^ -o $@
 
-debug: CFLAGS+=-g -DDEBUG
+debug: CFLAGS+=-g -DS5DEBUG
 debug: socks5-server
 
 clean:

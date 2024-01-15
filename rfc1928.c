@@ -10,16 +10,16 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-static int is_valid_cmd(Cmd cmd);
-static int is_valid_atyp(Atyp atyp);
-static int negotiate_auth_method(const S5ServerCtx *ctx, int fd, AuthMethod *method);
-static int handle_auth_method(const S5ServerCtx *ctx, int fd, AuthMethod method);
-static AuthMethod choose_auth_method(const S5ServerCtx *ctx, AuthMethod *methods, unsigned char nmethods);
+static int is_valid_cmd(S5Cmd cmd);
+static int is_valid_atyp(S5Atyp atyp);
+static int negotiate_auth_method(const S5ServerCtx *ctx, int fd, S5AuthMethod *method);
+static int handle_auth_method(const S5ServerCtx *ctx, int fd, S5AuthMethod method);
+static S5AuthMethod choose_auth_method(const S5ServerCtx *ctx, S5AuthMethod *methods, unsigned char nmethods);
 static int auth_userpass(const S5ServerCtx *ctx, int fd);
 static void bridge_fd(int fd1, int fd2);
-static int connect_dst(const S5ServerCtx *ctx, Atyp atyp, struct sockaddr_storage *sa, int type, int proto);
-static int get_request(const S5ServerCtx *ctx, int fd, Cmd *cmd, Atyp *atyp, struct sockaddr_storage *sa, Rep *rep);
-static int reply_request(const S5ServerCtx *ctx, int fd, Rep rep, Atyp atyp, struct sockaddr_storage *sa);
+static int connect_dst(const S5ServerCtx *ctx, S5Atyp atyp, struct sockaddr_storage *sa, int type, int proto);
+static int get_request(const S5ServerCtx *ctx, int fd, S5Cmd *cmd, S5Atyp *atyp, struct sockaddr_storage *sa, S5Rep *rep);
+static int reply_request(const S5ServerCtx *ctx, int fd, S5Rep rep, S5Atyp atyp, struct sockaddr_storage *sa);
 
 void s5_server_ctx_free(S5ServerCtx *ctx)
 {
@@ -83,29 +83,29 @@ static int auth_userpass(const S5ServerCtx *ctx, int fd)
 
 void s5_server_handler(const S5ServerCtx *ctx, int fd)
 {
-	AuthMethod method;
+	S5AuthMethod method;
 
 	if (negotiate_auth_method(ctx, fd, &method) != 0) {
-		DLOGF("auth negotiation failed\n");
+		S5DLOGF("auth negotiation failed\n");
 		return;
 	}
 
-	DLOGF("method: %s\n", s5_auth_method_str(method));
+	S5DLOGF("method: %s\n", s5_auth_method_str(method));
 
 	if (method == INVALID_AUTH_METHOD) return;
 
 	int dstfd = -1;
-	Cmd cmd;
-	Atyp atyp;
-	Rep rep;
+	S5Cmd cmd;
+	S5Atyp atyp;
+	S5Rep rep;
 	struct sockaddr_storage sa;
 
 	if (get_request(ctx, fd, &cmd, &atyp, &sa, &rep) != 0) {
-		DLOGF("get_request failed\n");
+		S5DLOGF("get_request failed\n");
 		return;
 	}
 
-	DLOGF("cmd: %s atyp: %s\n", s5_cmd_str(cmd), s5_atyp_str(atyp));
+	S5DLOGF("cmd: %s atyp: %s\n", s5_cmd_str(cmd), s5_atyp_str(atyp));
 
 	if (rep != REP_OK) goto reply;
 
@@ -117,7 +117,7 @@ void s5_server_handler(const S5ServerCtx *ctx, int fd)
 	errno = 0;
 	dstfd = connect_dst(ctx, atyp, &sa, SOCK_STREAM, IPPROTO_TCP);
 	if (dstfd == -1) {
-		DLOGF("connect_dst failed\n");
+		S5DLOGF("connect_dst failed\n");
 		switch (errno) {
 		case ENETUNREACH:
 			rep = REP_NETWORK_UNREACHABLE;
@@ -130,10 +130,10 @@ void s5_server_handler(const S5ServerCtx *ctx, int fd)
 
 reply:
 
-	DLOGF("replying: %s\n", s5_rep_str(rep));
+	S5DLOGF("replying: %s\n", s5_rep_str(rep));
 
 	if (reply_request(ctx, fd, rep, atyp, &sa) != 0) {
-		DLOGF("reply failed\n");
+		S5DLOGF("reply failed\n");
 		return;
 	}
 
@@ -189,7 +189,7 @@ static void bridge_fd(int fd1, int fd2)
 	}
 }
 
-static int is_valid_cmd(Cmd cmd)
+static int is_valid_cmd(S5Cmd cmd)
 {
 	switch (cmd) {
 	case CMD_CONNECT:
@@ -199,7 +199,7 @@ static int is_valid_cmd(Cmd cmd)
 	}
 }
 
-static int is_valid_atyp(Atyp atyp)
+static int is_valid_atyp(S5Atyp atyp)
 {
 	switch (atyp) {
 	case ATYP_IPV4:
@@ -211,7 +211,7 @@ static int is_valid_atyp(Atyp atyp)
 	}
 }
 
-char *s5_atyp_str(Atyp atyp)
+char *s5_atyp_str(S5Atyp atyp)
 {
 	switch (atyp) {
 	case ATYP_IPV4:        return "IPV4";
@@ -221,7 +221,7 @@ char *s5_atyp_str(Atyp atyp)
 	}
 }
 
-char *s5_rep_str(Rep rep)
+char *s5_rep_str(S5Rep rep)
 {
 	switch (rep) {
 	case REP_OK:                 return "OK";
@@ -234,7 +234,7 @@ char *s5_rep_str(Rep rep)
 	}
 }
 
-char *s5_auth_method_str(AuthMethod method)
+char *s5_auth_method_str(S5AuthMethod method)
 {
 	switch (method) {
 	case USERPASS_AUTH:       return "USER:PASS AUTH";
@@ -244,7 +244,7 @@ char *s5_auth_method_str(AuthMethod method)
 	}
 }
 
-char *s5_cmd_str(Cmd cmd)
+char *s5_cmd_str(S5Cmd cmd)
 {
 	switch (cmd) {
 	case CMD_BIND:    return "BIND";
@@ -253,7 +253,7 @@ char *s5_cmd_str(Cmd cmd)
 	}
 }
 
-static int connect_dst(const S5ServerCtx *ctx, Atyp atyp, struct sockaddr_storage *sa, int type, int proto)
+static int connect_dst(const S5ServerCtx *ctx, S5Atyp atyp, struct sockaddr_storage *sa, int type, int proto)
 {
 	switch (atyp) {
 	case ATYP_IPV4:
@@ -281,7 +281,7 @@ static int connect_dst(const S5ServerCtx *ctx, Atyp atyp, struct sockaddr_storag
 	return fd;
 }
 
-static int reply_request(const S5ServerCtx *ctx, int fd, Rep rep, Atyp atyp, struct sockaddr_storage *sa)
+static int reply_request(const S5ServerCtx *ctx, int fd, S5Rep rep, S5Atyp atyp, struct sockaddr_storage *sa)
 {
 	unsigned char ver = 5, rsv = 0;
 
@@ -306,7 +306,7 @@ static int reply_request(const S5ServerCtx *ctx, int fd, Rep rep, Atyp atyp, str
 	return 0;
 }
 
-static int get_request(const S5ServerCtx *ctx, int fd, Cmd *cmd, Atyp *atyp, struct sockaddr_storage *sa, Rep *rep)
+static int get_request(const S5ServerCtx *ctx, int fd, S5Cmd *cmd, S5Atyp *atyp, struct sockaddr_storage *sa, S5Rep *rep)
 {
 	*rep = REP_FAIL;
 	bzero(sa, sizeof(*sa));
@@ -375,7 +375,7 @@ static int get_request(const S5ServerCtx *ctx, int fd, Cmd *cmd, Atyp *atyp, str
 	return 0;
 }
 
-static AuthMethod choose_auth_method(const S5ServerCtx *ctx, AuthMethod *methods, unsigned char nmethods)
+static S5AuthMethod choose_auth_method(const S5ServerCtx *ctx, S5AuthMethod *methods, unsigned char nmethods)
 {
 	if (ctx->flags & FLAG_NO_AUTH && memchr(methods, NO_AUTH, nmethods))
 		return NO_AUTH;
@@ -384,7 +384,7 @@ static AuthMethod choose_auth_method(const S5ServerCtx *ctx, AuthMethod *methods
 	return INVALID_AUTH_METHOD;
 }
 
-static int handle_auth_method(const S5ServerCtx *ctx, int fd, AuthMethod method)
+static int handle_auth_method(const S5ServerCtx *ctx, int fd, S5AuthMethod method)
 {
 	switch (method) {
 	case NO_AUTH:
@@ -396,10 +396,10 @@ static int handle_auth_method(const S5ServerCtx *ctx, int fd, AuthMethod method)
 	}
 }
 
-static int negotiate_auth_method(const S5ServerCtx *ctx, int fd, AuthMethod *method)
+static int negotiate_auth_method(const S5ServerCtx *ctx, int fd, S5AuthMethod *method)
 {
 	unsigned char ver, nmethods;
-	AuthMethod methods[0xff], smethod;
+	S5AuthMethod methods[0xff], smethod;
 
 	if (read(fd, &ver, sizeof(ver)) != sizeof(ver)) return 1;
 	if (ver != 5) return 1;
