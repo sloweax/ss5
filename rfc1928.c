@@ -282,27 +282,31 @@ static int connect_dst(const S5ServerCtx *ctx, S5Atyp atyp, struct sockaddr_stor
 
 static int reply_request(const S5ServerCtx *ctx, int fd, S5Rep rep, S5Atyp atyp, struct sockaddr_storage *sa)
 {
-	unsigned char ver = 5, rsv = 0;
-
-	if (write(fd, &ver, sizeof(ver)) != sizeof(ver)) return 1;
-	if (write(fd, &rep, sizeof(rep)) != sizeof(rep)) return 1;
-	if (write(fd, &rsv, sizeof(rsv)) != sizeof(rsv)) return 1;
-	if (write(fd, &atyp, sizeof(atyp)) != sizeof(atyp)) return 1;
+	unsigned char buf[4 + 8 + 2], *tmp;
+	tmp = buf;
+	*tmp++ = 5; // version
+	*tmp++ = rep;
+	*tmp++ = 0; // reserved
+	*tmp++ = atyp;
 
 	switch (sa->ss_family) {
 	case AF_INET:
-		if (write(fd, &((struct sockaddr_in *)sa)->sin_addr, 4) != 4) return 1;
-		if (write(fd, &((struct sockaddr_in *)sa)->sin_port, 2) != 2) return 1;
+		memcpy(tmp, &((struct sockaddr_in *)sa)->sin_addr, 4);
+		tmp += 4;
+		memcpy(tmp, &((struct sockaddr_in *)sa)->sin_port, 2);
+		tmp += 2;
 		break;
 	case AF_INET6:
-		if (write(fd, &((struct sockaddr_in6 *)sa)->sin6_addr, 8) != 8) return 1;
-		if (write(fd, &((struct sockaddr_in6 *)sa)->sin6_port, 2) != 2) return 1;
+		memcpy(tmp, &((struct sockaddr_in6 *)sa)->sin6_addr, 8);
+		tmp += 8;
+		memcpy(tmp, &((struct sockaddr_in6 *)sa)->sin6_port, 2);
+		tmp += 2;
 		break;
 	default:
 		return 1;
 	}
 
-	return 0;
+	return write(fd, buf, tmp - buf) == (tmp - buf) ? 0 : 1;
 }
 
 static int get_request(const S5ServerCtx *ctx, int fd, S5Cmd *cmd, S5Atyp *atyp, struct sockaddr_storage *sa, S5Rep *rep)
