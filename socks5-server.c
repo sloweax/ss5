@@ -49,7 +49,7 @@ int main(int argc, char **argv)
 				"     -n                  allow NO AUTH\n"
 				"     -u user:pass        add user:pass\n"
 				"     -p port             listen on port ("PORT" by default)\n"
-				"     -l host             listen on host ("HOST" by default)\n"
+				"     -l host             listen on host ("HOST" by default)"
 			, argv[0]);
 		case '?':
 			die("unknown option -%c\n%s -h for help", optopt, argv[0]);
