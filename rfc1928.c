@@ -28,7 +28,7 @@ int socks5_server_ctx_init(Socks5ServerCtx *ctx)
 	return 0;
 }
 
-int socks5_server_add_userpass(const Socks5ServerCtx *ctx, char *userpass)
+int socks5_server_add_userpass(Socks5ServerCtx *ctx, char *userpass)
 {
 	size_t len = strlen(userpass);
 	char *buf = malloc(len + 1);
