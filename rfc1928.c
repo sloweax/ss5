@@ -92,7 +92,7 @@ void s5_server_handler(const S5ServerCtx *ctx, int fd)
 
 	S5DLOGF("method: %s\n", s5_auth_method_str(method));
 
-	if (method == INVALID_AUTH_METHOD) return;
+	if (method == S5INVALID_AUTH_METHOD) return;
 
 	int dstfd = -1;
 	S5Cmd cmd;
@@ -107,12 +107,12 @@ void s5_server_handler(const S5ServerCtx *ctx, int fd)
 
 	S5DLOGF("cmd: %s atyp: %s\n", s5_cmd_str(cmd), s5_atyp_str(atyp));
 
-	if (rep != REP_OK) goto reply;
+	if (rep != S5REP_OK) goto reply;
 
-	if (!is_valid_cmd(cmd))   rep = REP_CMD_NOT_SUPPORTED;
-	if (!is_valid_atyp(atyp)) rep = REP_ATYP_NOT_SUPPORTED;
+	if (!is_valid_cmd(cmd))   rep = S5REP_CMD_NOT_SUPPORTED;
+	if (!is_valid_atyp(atyp)) rep = S5REP_ATYP_NOT_SUPPORTED;
 
-	if (rep != REP_OK) goto reply;
+	if (rep != S5REP_OK) goto reply;
 
 	errno = 0;
 	dstfd = connect_dst(ctx, atyp, &sa, SOCK_STREAM, IPPROTO_TCP);
@@ -120,11 +120,11 @@ void s5_server_handler(const S5ServerCtx *ctx, int fd)
 		S5DLOGF("connect_dst failed\n");
 		switch (errno) {
 		case ENETUNREACH:
-			rep = REP_NETWORK_UNREACHABLE;
+			rep = S5REP_NETWORK_UNREACHABLE;
 		case ECONNREFUSED:
-			rep = REP_CONNECTION_REFUSED;
+			rep = S5REP_CONNECTION_REFUSED;
 		default:
-			rep = REP_FAIL;
+			rep = S5REP_FAIL;
 		}
 	}
 
@@ -137,7 +137,7 @@ reply:
 		return;
 	}
 
-	if (dstfd == -1 || rep != REP_OK) return;
+	if (dstfd == -1 || rep != S5REP_OK) return;
 
 	bridge_fd(fd, dstfd);
 
@@ -192,7 +192,7 @@ static void bridge_fd(int fd1, int fd2)
 static int is_valid_cmd(S5Cmd cmd)
 {
 	switch (cmd) {
-	case CMD_CONNECT:
+	case S5CMD_CONNECT:
 		return 1;
 	default:
 		return 0;
@@ -202,9 +202,9 @@ static int is_valid_cmd(S5Cmd cmd)
 static int is_valid_atyp(S5Atyp atyp)
 {
 	switch (atyp) {
-	case ATYP_IPV4:
-	case ATYP_IPV6:
-	case ATYP_DOMAIN_NAME:
+	case S5ATYP_IPV4:
+	case S5ATYP_IPV6:
+	case S5ATYP_DOMAIN_NAME:
 		return 1;
 	default:
 		return 0;
@@ -214,50 +214,50 @@ static int is_valid_atyp(S5Atyp atyp)
 char *s5_atyp_str(S5Atyp atyp)
 {
 	switch (atyp) {
-	case ATYP_IPV4:        return "IPV4";
-	case ATYP_IPV6:        return "IPV6";
-	case ATYP_DOMAIN_NAME: return "DOMAIN NAME";
-	default:               return "?";
+	case S5ATYP_IPV4:        return "IPV4";
+	case S5ATYP_IPV6:        return "IPV6";
+	case S5ATYP_DOMAIN_NAME: return "DOMAIN NAME";
+	default:                 return "?";
 	}
 }
 
 char *s5_rep_str(S5Rep rep)
 {
 	switch (rep) {
-	case REP_OK:                 return "OK";
-	case REP_FAIL:               return "FAIL";
-	case REP_ATYP_NOT_SUPPORTED: return "ATYP NOT SUPPORTED";
-	case REP_CMD_NOT_SUPPORTED:  return "CMD NOT SUPPORTED";
-	case REP_HOST_UNREACHABLE:   return "HOST UNREACHABLE";
-	case REP_CONNECTION_REFUSED: return "CONNECTION REFUSED";
-	default:                     return "?";
+	case S5REP_OK:                 return "OK";
+	case S5REP_FAIL:               return "FAIL";
+	case S5REP_ATYP_NOT_SUPPORTED: return "ATYP NOT SUPPORTED";
+	case S5REP_CMD_NOT_SUPPORTED:  return "CMD NOT SUPPORTED";
+	case S5REP_HOST_UNREACHABLE:   return "HOST UNREACHABLE";
+	case S5REP_CONNECTION_REFUSED: return "CONNECTION REFUSED";
+	default:                       return "?";
 	}
 }
 
 char *s5_auth_method_str(S5AuthMethod method)
 {
 	switch (method) {
-	case USERPASS_AUTH:       return "USER:PASS AUTH";
-	case NO_AUTH:             return "NO AUTH";
-	case INVALID_AUTH_METHOD: return "INVALID AUTH METHOD";
-	default:                  return "?";
+	case S5USERPASS_AUTH:       return "USER:PASS AUTH";
+	case S5NO_AUTH:             return "NO AUTH";
+	case S5INVALID_AUTH_METHOD: return "INVALID AUTH METHOD";
+	default:                    return "?";
 	}
 }
 
 char *s5_cmd_str(S5Cmd cmd)
 {
 	switch (cmd) {
-	case CMD_BIND:    return "BIND";
-	case CMD_CONNECT: return "CONNECT";
-	default:          return "?";
+	case S5CMD_BIND:    return "BIND";
+	case S5CMD_CONNECT: return "CONNECT";
+	default:            return "?";
 	}
 }
 
 static int connect_dst(const S5ServerCtx *ctx, S5Atyp atyp, struct sockaddr_storage *sa, int type, int proto)
 {
 	switch (atyp) {
-	case ATYP_IPV4:
-	case ATYP_IPV6:
+	case S5ATYP_IPV4:
+	case S5ATYP_IPV6:
 		break;
 	default:
 		return -1;
@@ -266,7 +266,7 @@ static int connect_dst(const S5ServerCtx *ctx, S5Atyp atyp, struct sockaddr_stor
 	int fd = socket(sa->ss_family, type, proto);
 	if (fd == -1) return -1;
 
-	if (atyp == ATYP_IPV4) {
+	if (atyp == S5ATYP_IPV4) {
 		if (connect(fd, (struct sockaddr *)sa, sizeof(struct sockaddr_in)) != 0) {
 			close(fd);
 			return -1;
@@ -308,7 +308,7 @@ static int reply_request(const S5ServerCtx *ctx, int fd, S5Rep rep, S5Atyp atyp,
 
 static int get_request(const S5ServerCtx *ctx, int fd, S5Cmd *cmd, S5Atyp *atyp, struct sockaddr_storage *sa, S5Rep *rep)
 {
-	*rep = REP_FAIL;
+	*rep = S5REP_FAIL;
 	bzero(sa, sizeof(*sa));
 	struct addrinfo *ainfo, *tmp;
 	unsigned char hostlen;
@@ -322,17 +322,17 @@ static int get_request(const S5ServerCtx *ctx, int fd, S5Cmd *cmd, S5Atyp *atyp,
 	if (ver != 5) return 0;
 
 	switch (*atyp) {
-	case ATYP_IPV4:
+	case S5ATYP_IPV4:
 		sa->ss_family = AF_INET;
 		if (read(fd, &((struct sockaddr_in *)sa)->sin_addr, 4) != 4) return 1;
 		if (read(fd, &((struct sockaddr_in *)sa)->sin_port, 2) != 2) return 1;
 		break;
-	case ATYP_IPV6:
+	case S5ATYP_IPV6:
 		sa->ss_family = AF_INET6;
 		if (read(fd, &((struct sockaddr_in6 *)sa)->sin6_addr, 8) != 8) return 1;
 		if (read(fd, &((struct sockaddr_in6 *)sa)->sin6_port, 2) != 2) return 1;
 		break;
-	case ATYP_DOMAIN_NAME:
+	case S5ATYP_DOMAIN_NAME:
 		if (read(fd, &hostlen, sizeof(hostlen)) != sizeof(hostlen)) return 1;
 		if (read(fd, host, hostlen) != hostlen) return 1;
 		if (getaddrinfo(host, NULL, NULL, &ainfo) != 0) return 0;
@@ -351,13 +351,13 @@ static int get_request(const S5ServerCtx *ctx, int fd, S5Cmd *cmd, S5Atyp *atyp,
 		memcpy(sa, ainfo->ai_addr, ainfo->ai_addrlen);
 
 		if (tmp->ai_family == AF_INET) {
-			*atyp = ATYP_IPV4;
+			*atyp = S5ATYP_IPV4;
 			if (read(fd, &((struct sockaddr_in *)sa)->sin_port, 2) != 2) {
 				freeaddrinfo(ainfo);
 				return 1;
 			}
 		} else {
-			*atyp = ATYP_IPV6;
+			*atyp = S5ATYP_IPV6;
 			if (read(fd, &((struct sockaddr_in6 *)sa)->sin6_port, 2) != 2) {
 				freeaddrinfo(ainfo);
 				return 1;
@@ -367,29 +367,29 @@ static int get_request(const S5ServerCtx *ctx, int fd, S5Cmd *cmd, S5Atyp *atyp,
 		freeaddrinfo(ainfo);
 		break;
 	default:
-		*rep = REP_ATYP_NOT_SUPPORTED;
+		*rep = S5REP_ATYP_NOT_SUPPORTED;
 		return 0;
 	}
 
-	*rep = REP_OK;
+	*rep = S5REP_OK;
 	return 0;
 }
 
 static S5AuthMethod choose_auth_method(const S5ServerCtx *ctx, S5AuthMethod *methods, unsigned char nmethods)
 {
-	if (ctx->flags & FLAG_NO_AUTH && memchr(methods, NO_AUTH, nmethods))
-		return NO_AUTH;
-	if (ctx->flags & FLAG_USERPASS_AUTH && memchr(methods, USERPASS_AUTH, nmethods))
-		return USERPASS_AUTH;
-	return INVALID_AUTH_METHOD;
+	if (ctx->flags & S5FLAG_NO_AUTH && memchr(methods, S5NO_AUTH, nmethods))
+		return S5NO_AUTH;
+	if (ctx->flags & S5FLAG_USERPASS_AUTH && memchr(methods, S5USERPASS_AUTH, nmethods))
+		return S5USERPASS_AUTH;
+	return S5INVALID_AUTH_METHOD;
 }
 
 static int handle_auth_method(const S5ServerCtx *ctx, int fd, S5AuthMethod method)
 {
 	switch (method) {
-	case NO_AUTH:
+	case S5NO_AUTH:
 		return 0;
-	case USERPASS_AUTH:
+	case S5USERPASS_AUTH:
 		return auth_userpass(ctx, fd);
 	default:
 		return 1;

@@ -25,36 +25,36 @@ struct S5ServerCtx {
 typedef struct S5ServerCtx S5ServerCtx;
 
 enum S5ServerFlags {
-	FLAG_NO_AUTH = 1 << 0,
-	FLAG_USERPASS_AUTH = 1 << 1,
+	S5FLAG_NO_AUTH = 1 << 0,
+	S5FLAG_USERPASS_AUTH = 1 << 1,
 };
 
 enum S5AuthMethods {
-	NO_AUTH             = 0,
-	USERPASS_AUTH       = 2,
-	INVALID_AUTH_METHOD = 0xff,
+	S5NO_AUTH             = 0,
+	S5USERPASS_AUTH       = 2,
+	S5INVALID_AUTH_METHOD = 0xff,
 };
 
 enum S5Cmds {
-	CMD_CONNECT       = 1,
-	CMD_BIND          = 2,
-	CMD_UDP_ASSOCIATE = 3,
+	S5CMD_CONNECT       = 1,
+	S5CMD_BIND          = 2,
+	S5CMD_UDP_ASSOCIATE = 3,
 };
 
 enum S5Atyps {
-	ATYP_IPV4         = 1,
-	ATYP_DOMAIN_NAME  = 3,
-	ATYP_IPV6         = 4,
+	S5ATYP_IPV4         = 1,
+	S5ATYP_DOMAIN_NAME  = 3,
+	S5ATYP_IPV6         = 4,
 };
 
 enum S5Reps {
-	REP_OK                  = 0,
-	REP_FAIL                = 1,
-	REP_NETWORK_UNREACHABLE = 3,
-	REP_HOST_UNREACHABLE    = 4,
-	REP_CONNECTION_REFUSED  = 5,
-	REP_CMD_NOT_SUPPORTED   = 7,
-	REP_ATYP_NOT_SUPPORTED  = 8,
+	S5REP_OK                  = 0,
+	S5REP_FAIL                = 1,
+	S5REP_NETWORK_UNREACHABLE = 3,
+	S5REP_HOST_UNREACHABLE    = 4,
+	S5REP_CONNECTION_REFUSED  = 5,
+	S5REP_CMD_NOT_SUPPORTED   = 7,
+	S5REP_ATYP_NOT_SUPPORTED  = 8,
 };
 
 // returns 0 on success

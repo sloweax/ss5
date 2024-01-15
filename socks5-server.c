@@ -36,7 +36,7 @@ int main(int argc, char **argv)
 		switch(opt) {
 		case 'U':
 			{
-				ctx.flags |= FLAG_USERPASS_AUTH;
+				ctx.flags |= S5FLAG_USERPASS_AUTH;
 				char *line = NULL;
 				size_t len;
 				ssize_t read;
@@ -59,11 +59,11 @@ int main(int argc, char **argv)
 			}
 			break;
 		case 'u':
-			ctx.flags |= FLAG_USERPASS_AUTH;
+			ctx.flags |= S5FLAG_USERPASS_AUTH;
 			if (s5_server_add_userpass(&ctx, optarg) != 0)
 				die("socks5_server_add_userpass:");
 			break;
-		case 'n': ctx.flags |= FLAG_NO_AUTH; break;
+		case 'n': ctx.flags |= S5FLAG_NO_AUTH; break;
 		case 'l': host = optarg; break;
 		case 'p': port = optarg; break;
 		case 'h':
@@ -90,13 +90,13 @@ int main(int argc, char **argv)
 	if (serverfd == -1)
 		die("could not create server");
 
-	if (ctx.flags & FLAG_NO_AUTH)
-		printf("accepting %s\n", s5_auth_method_str(NO_AUTH));
+	if (ctx.flags & S5FLAG_NO_AUTH)
+		printf("accepting %s\n", s5_auth_method_str(S5NO_AUTH));
 
-	if (ctx.flags & FLAG_USERPASS_AUTH)
-		printf("accepting %s\n", s5_auth_method_str(USERPASS_AUTH));
+	if (ctx.flags & S5FLAG_USERPASS_AUTH)
+		printf("accepting %s\n", s5_auth_method_str(S5USERPASS_AUTH));
 
-	if (!(ctx.flags & (FLAG_NO_AUTH | FLAG_USERPASS_AUTH)))
+	if (!(ctx.flags & (S5FLAG_NO_AUTH | S5FLAG_USERPASS_AUTH)))
 		die("no auth method provided, exiting\n%s -h for help", argv[0]);
 
 	printf("listening on %s:%s\n", host, port);
