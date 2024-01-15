@@ -9,22 +9,26 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-void socks5_ctx_free(Socks5ServerCtx *ctx) {
+void socks5_ctx_free(Socks5ServerCtx *ctx)
+{
 	ll_free(ctx->userpass);
 }
 
-int socks5_server_ctx_init(Socks5ServerCtx *ctx) {
+int socks5_server_ctx_init(Socks5ServerCtx *ctx)
+{
 	ctx->flags = 0;
 	ctx->userpass = ll_create();
 	if (ctx->userpass == NULL) return 1;
 	return 0;
 }
 
-int socks5_server_add_userpass(const Socks5ServerCtx *ctx, char *userpass) {
+int socks5_server_add_userpass(const Socks5ServerCtx *ctx, char *userpass)
+{
 	return ll_append(ctx->userpass, userpass);
 }
 
-int socks5_server_auth_userpass(const Socks5ServerCtx *ctx, int fd) {
+int socks5_server_auth_userpass(const Socks5ServerCtx *ctx, int fd)
+{
 	char userpass[256 + 256 + 2];
 	userpass[0] = 0;
 	char *tmp = userpass;
