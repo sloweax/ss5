@@ -57,12 +57,11 @@ enum S5Reps {
 	S5REP_ATYP_NOT_SUPPORTED  = 8,
 };
 
-// returns 0 on success
+// int functions below return 0 on success
 int s5_server_ctx_init(S5ServerCtx *ctx);
 void s5_server_ctx_free(S5ServerCtx *ctx);
-// returns 0 on success
 int s5_server_add_userpass(S5ServerCtx *ctx, char *userpass);
-void s5_server_handler(const S5ServerCtx *ctx, int fd);
+int s5_server_handler(const S5ServerCtx *ctx, int fd);
 
 // returns -1 on error
 int s5_create_server(const char *host, const char *port, int backlog, int proto);

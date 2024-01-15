@@ -16,7 +16,7 @@ static int negotiate_auth_method(const S5ServerCtx *ctx, int fd, S5AuthMethod *m
 static int handle_auth_method(const S5ServerCtx *ctx, int fd, S5AuthMethod method);
 static S5AuthMethod choose_auth_method(const S5ServerCtx *ctx, S5AuthMethod *methods, unsigned char nmethods);
 static int auth_userpass(const S5ServerCtx *ctx, int fd);
-static void bridge_fd(int fd1, int fd2);
+static int bridge_fd(int fd1, int fd2);
 static int connect_dst(const S5ServerCtx *ctx, S5Atyp atyp, struct sockaddr_storage *sa, int type, int proto);
 static int get_request(const S5ServerCtx *ctx, int fd, S5Cmd *cmd, S5Atyp *atyp, struct sockaddr_storage *sa, S5Rep *rep);
 static int reply_request(const S5ServerCtx *ctx, int fd, S5Rep rep, S5Atyp atyp, struct sockaddr_storage *sa);
@@ -81,18 +81,18 @@ static int auth_userpass(const S5ServerCtx *ctx, int fd)
 	return status == 0 ? 0 : 1;
 }
 
-void s5_server_handler(const S5ServerCtx *ctx, int fd)
+int s5_server_handler(const S5ServerCtx *ctx, int fd)
 {
 	S5AuthMethod method;
 
 	if (negotiate_auth_method(ctx, fd, &method) != 0) {
 		S5DLOGF("auth negotiation failed\n");
-		return;
+		return 1;
 	}
 
 	S5DLOGF("method: %s\n", s5_auth_method_str(method));
 
-	if (method == S5INVALID_AUTH_METHOD) return;
+	if (method == S5INVALID_AUTH_METHOD) return 0;
 
 	int dstfd = -1;
 	S5Cmd cmd;
@@ -102,7 +102,7 @@ void s5_server_handler(const S5ServerCtx *ctx, int fd)
 
 	if (get_request(ctx, fd, &cmd, &atyp, &sa, &rep) != 0) {
 		S5DLOGF("get_request failed\n");
-		return;
+		return 1;
 	}
 
 	S5DLOGF("cmd: %s atyp: %s\n", s5_cmd_str(cmd), s5_atyp_str(atyp));
@@ -134,17 +134,16 @@ reply:
 
 	if (reply_request(ctx, fd, rep, atyp, &sa) != 0) {
 		S5DLOGF("reply failed\n");
-		return;
+		return 1;
 	}
 
-	if (dstfd == -1 || rep != S5REP_OK) return;
+	if (rep != S5REP_OK) return 0;
+	if (dstfd == -1) return 1;
 
-	bridge_fd(fd, dstfd);
-
-	return;
+	return bridge_fd(fd, dstfd);
 }
 
-static void bridge_fd(int fd1, int fd2)
+static int bridge_fd(int fd1, int fd2)
 {
 	char buf[4096];
 	ssize_t rn1, rn2, wn1, wn2, lrn1, lrn2;
@@ -162,27 +161,27 @@ static void bridge_fd(int fd1, int fd2)
 		rn1 = rn2 = fds[0].revents = fds[1].revents = 0;
 
 		int e = poll(fds, 2, 2000);
-		if (e == -1) return;
+		if (e == -1) return 1;
 
 		if ((fds[0].revents & (POLLHUP | POLLERR | POLLNVAL)) ||
 		    (fds[1].revents & (POLLHUP | POLLERR | POLLNVAL)))
-			return;
+			return 1;
 
 		if (fds[0].revents & POLLIN) {
 			rn1 = read(fd1, buf, sizeof(buf));
-			if (rn1 == -1) return;
+			if (rn1 == -1) return 1;
 			wn2 = write(fd2, buf, rn1);
-			if (wn2 != rn1) return;
+			if (wn2 != rn1) return 1;
 		}
 
 		if (fds[1].revents & POLLIN) {
 			rn2 = read(fd2, buf, sizeof(buf));
-			if (rn2 == -1) return;
+			if (rn2 == -1) return 1;
 			wn1 = write(fd1, buf, rn2);
-			if (wn1 != rn2) return;
+			if (wn1 != rn2) return 1;
 		}
 
-		if ((rn1 | lrn1 | rn2 | lrn2) == 0) return;
+		if ((rn1 | lrn1 | rn2 | lrn2) == 0) return 0;
 
 		lrn1 = rn1;
 		lrn2 = rn2;
