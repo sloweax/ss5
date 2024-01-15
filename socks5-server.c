@@ -24,11 +24,21 @@ void int_handler(int sig)
 
 int main(int argc, char **argv)
 {
+	Socks5ServerCtx ctx;
 	char *host = HOST, *port = PORT;
 	int opt;
 
-	while((opt = getopt(argc, argv, ":l:p:h")) != -1) {
+	if (socks5_server_ctx_init(&ctx) != 0)
+		die("socks5_server_ctx_init:");
+
+	while((opt = getopt(argc, argv, ":l:p:hnu:")) != -1) {
 		switch(opt) {
+		case 'u':
+			ctx.flags |= FLAG_USERPASS_AUTH;
+			if (socks5_server_add_userpass(&ctx, optarg) != 0)
+				die("socks5_server_add_userpass:");
+			break;
+		case 'n': ctx.flags |= FLAG_NO_AUTH; break;
 		case 'l': host = optarg; break;
 		case 'p': port = optarg; break;
 		case 'h':
@@ -36,8 +46,10 @@ int main(int argc, char **argv)
 				"usage: %s [OPTION]...\n"
 				"OPTION:\n"
 				"     -h                  shows usage and exits\n"
+				"     -n                  allow NO AUTH\n"
+				"     -u user:pass        add user:pass\n"
 				"     -p port             listen on port ("PORT" by default)\n"
-				"     -l host             listen on host ("HOST" by default)"
+				"     -l host             listen on host ("HOST" by default)\n"
 			, argv[0]);
 		case '?':
 			die("unknown option -%c\n%s -h for help", optopt, argv[0]);
@@ -51,6 +63,15 @@ int main(int argc, char **argv)
 	serverfd = create_tcp_server(host, port, BACKLOG);
 	if (serverfd == -1)
 		die("could not create server");
+
+	if (ctx.flags & FLAG_NO_AUTH)
+		puts("accepting NO AUTH");
+
+	if (ctx.flags & FLAG_USERPASS_AUTH)
+		puts("accepting USERPASS AUTH");
+
+	if (!(ctx.flags & (FLAG_NO_AUTH | FLAG_USERPASS_AUTH)))
+		die("no auth method provided, exiting\n%s -h for help", argv[0]);
 
 	printf("listening on %s:%s\n", host, port);
 
@@ -94,9 +115,11 @@ int main(int argc, char **argv)
 
 			close(serverfd);
 
-			socks5_handler(cfd);
+			socks5_handler(&ctx, cfd);
 
 			close(cfd);
+
+			socks5_ctx_free(&ctx);
 
 			exit(0);
 		} else {
@@ -107,6 +130,7 @@ int main(int argc, char **argv)
 	while (wait(NULL) > 0);
 
 	close(serverfd);
+	socks5_ctx_free(&ctx);
 
 	return 0;
 }

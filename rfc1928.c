@@ -1,4 +1,5 @@
 #include "rfc1928.h"
+#include "ll.h"
 #include <arpa/inet.h>
 #include <errno.h>
 #include <netdb.h>
@@ -8,11 +9,58 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-void socks5_handler(int fd)
+void socks5_ctx_free(Socks5ServerCtx *ctx) {
+	ll_free(ctx->userpass);
+}
+
+int socks5_server_ctx_init(Socks5ServerCtx *ctx) {
+	ctx->flags = 0;
+	ctx->userpass = ll_create();
+	if (ctx->userpass == NULL) return 1;
+	return 0;
+}
+
+int socks5_server_add_userpass(const Socks5ServerCtx *ctx, char *userpass) {
+	return ll_append(ctx->userpass, userpass);
+}
+
+int socks5_server_auth_userpass(const Socks5ServerCtx *ctx, int fd) {
+	char userpass[256 + 256 + 2];
+	userpass[0] = 0;
+	char *tmp = userpass;
+	unsigned char len, ver, status = 1;
+
+	if (read(fd, &ver, sizeof(ver)) != sizeof(ver)) return 1;
+	if (read(fd, &len, sizeof(len)) != sizeof(len)) return 1;
+	if (read(fd, userpass, len) != len) return 1;
+	tmp += len;
+	*tmp++ = ':';
+	if (read(fd, &len, sizeof(len)) != sizeof(len)) return 1;
+	if (read(fd, tmp, len) != len) return 1;
+	tmp += len;
+	*tmp = 0;
+
+	LLNode *node = ctx->userpass->head;
+	while (node) {
+		if (strcmp(node->data, userpass) == 0) {
+			status = 0;
+			break;
+		}
+		node = node->next;
+	}
+
+	if (ver != 1) status = 1;
+	if (write(fd, &ver, sizeof(ver)) != sizeof(ver)) return 1;
+	if (write(fd, &status, sizeof(status)) != sizeof(status)) return 1;
+
+	return status == 0 ? 0 : 1;
+}
+
+void socks5_handler(const Socks5ServerCtx *ctx, int fd)
 {
 	AuthMethod method;
 
-	if (negotiate_auth_method(fd, &method) != 0) {
+	if (negotiate_auth_method(ctx, fd, &method) != 0) {
 		DLOGF("auth negotiation failed\n");
 		return;
 	}
@@ -27,7 +75,7 @@ void socks5_handler(int fd)
 	Rep rep;
 	struct sockaddr_storage sa;
 
-	if (get_request(fd, &cmd, &atyp, &sa, &rep) != 0) {
+	if (get_request(ctx, fd, &cmd, &atyp, &sa, &rep) != 0) {
 		DLOGF("get_request failed\n");
 		return;
 	}
@@ -42,7 +90,7 @@ void socks5_handler(int fd)
 	if (rep != REP_OK) goto reply;
 
 	errno = 0;
-	dstfd = connect_dst(atyp, &sa, SOCK_STREAM, IPPROTO_TCP);
+	dstfd = connect_dst(ctx, atyp, &sa, SOCK_STREAM, IPPROTO_TCP);
 	if (dstfd == -1) {
 		DLOGF("connect_dst failed\n");
 		switch (errno) {
@@ -59,7 +107,7 @@ reply:
 
 	DLOGF("replying: %s\n", rep_str(rep));
 
-	if (reply_request(fd, rep, atyp, &sa) != 0) {
+	if (reply_request(ctx, fd, rep, atyp, &sa) != 0) {
 		DLOGF("reply failed\n");
 		return;
 	}
@@ -164,6 +212,7 @@ char *rep_str(Rep rep)
 char *auth_method_str(AuthMethod method)
 {
 	switch (method) {
+	case USERPASS_AUTH:       return "USERPASS_AUTH";
 	case NO_AUTH:             return "NO_AUTH";
 	case INVALID_AUTH_METHOD: return "INVALID_AUTH_METHOD";
 	default:                  return "?";
@@ -179,7 +228,7 @@ char *cmd_str(Cmd cmd)
 	}
 }
 
-int connect_dst(Atyp atyp, struct sockaddr_storage *sa, int type, int proto)
+int connect_dst(const Socks5ServerCtx *ctx, Atyp atyp, struct sockaddr_storage *sa, int type, int proto)
 {
 	switch (atyp) {
 	case ATYP_IPV4:
@@ -207,7 +256,7 @@ int connect_dst(Atyp atyp, struct sockaddr_storage *sa, int type, int proto)
 	return fd;
 }
 
-int reply_request(int fd, Rep rep, Atyp atyp, struct sockaddr_storage *sa)
+int reply_request(const Socks5ServerCtx *ctx, int fd, Rep rep, Atyp atyp, struct sockaddr_storage *sa)
 {
 	unsigned char ver = 5, rsv = 0;
 
@@ -232,7 +281,7 @@ int reply_request(int fd, Rep rep, Atyp atyp, struct sockaddr_storage *sa)
 	return 0;
 }
 
-int get_request(int fd, Cmd *cmd, Atyp *atyp, struct sockaddr_storage *sa, Rep *rep)
+int get_request(const Socks5ServerCtx *ctx, int fd, Cmd *cmd, Atyp *atyp, struct sockaddr_storage *sa, Rep *rep)
 {
 	*rep = REP_FAIL;
 	bzero(sa, sizeof(*sa));
@@ -301,23 +350,28 @@ int get_request(int fd, Cmd *cmd, Atyp *atyp, struct sockaddr_storage *sa, Rep *
 	return 0;
 }
 
-AuthMethod choose_auth_method(AuthMethod *methods, unsigned char nmethods)
+AuthMethod choose_auth_method(const Socks5ServerCtx *ctx, AuthMethod *methods, unsigned char nmethods)
 {
-	if (memchr(methods, NO_AUTH, nmethods)) return NO_AUTH;
+	if (ctx->flags & FLAG_NO_AUTH && memchr(methods, NO_AUTH, nmethods))
+		return NO_AUTH;
+	if (ctx->flags & FLAG_USERPASS_AUTH && memchr(methods, USERPASS_AUTH, nmethods))
+		return USERPASS_AUTH;
 	return INVALID_AUTH_METHOD;
 }
 
-int handle_auth_method(int fd, AuthMethod method)
+int handle_auth_method(const Socks5ServerCtx *ctx, int fd, AuthMethod method)
 {
 	switch (method) {
 	case NO_AUTH:
 		return 0;
+	case USERPASS_AUTH:
+		return socks5_server_auth_userpass(ctx, fd);
 	default:
 		return 1;
 	}
 }
 
-int negotiate_auth_method(int fd, AuthMethod *method)
+int negotiate_auth_method(const Socks5ServerCtx *ctx, int fd, AuthMethod *method)
 {
 	unsigned char ver, nmethods;
 	AuthMethod methods[0xff], smethod;
@@ -327,12 +381,12 @@ int negotiate_auth_method(int fd, AuthMethod *method)
 	if (read(fd, &nmethods, sizeof(nmethods)) != sizeof(nmethods)) return 1;
 	if (read(fd, methods, nmethods) != nmethods) return 1;
 
-	smethod = choose_auth_method(methods, nmethods);
+	smethod = choose_auth_method(ctx, methods, nmethods);
 
 	if (write(fd, &ver, sizeof(ver)) != sizeof(ver)) return 1;
 	if (write(fd, &smethod, sizeof(smethod)) != sizeof(smethod)) return 1;
 
-	if (handle_auth_method(fd, smethod) != 0)
+	if (handle_auth_method(ctx, fd, smethod) != 0)
 		return 1;
 
 	*method = smethod;
