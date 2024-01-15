@@ -9,5 +9,5 @@ make
 ## Supported socks5 features
 - IPV4, IPV6, DOMAIN NAME Address types
 - CONNECT command
-- NO AUTH, USER:PASS authentication
+- NO AUTH, multi USER:PASS authentication
 - TCP
