@@ -59,35 +59,15 @@ enum Reps {
 
 // returns 0 on success
 int socks5_server_ctx_init(Socks5ServerCtx *ctx);
-void socks5_ctx_free(Socks5ServerCtx *ctx);
+void socks5_server_ctx_free(Socks5ServerCtx *ctx);
 // returns 0 on success
 int socks5_server_add_userpass(Socks5ServerCtx *ctx, char *userpass);
-// returns 0 on success
-int socks5_server_auth_userpass(const Socks5ServerCtx *ctx, int fd);
 void socks5_server_handler(const Socks5ServerCtx *ctx, int fd);
 
 // returns -1 on error
-int create_tcp_server(const char *host, const char *port, int backlog);
-void bridge_fd(int fd1, int fd2);
+int socks5_create_tcp_server(const char *host, const char *port, int backlog);
 
-AuthMethod choose_auth_method(const Socks5ServerCtx *ctx, AuthMethod *methods, unsigned char nmethods);
-// returns 0 on success
-int negotiate_auth_method(const Socks5ServerCtx *ctx, int fd, AuthMethod *method);
-// returns 0 on success
-int handle_auth_method(const Socks5ServerCtx *ctx, int fd, AuthMethod method);
-
-// returns 0 on success
-int get_request(const Socks5ServerCtx *ctx, int fd, Cmd *cmd, Atyp *atyp, struct sockaddr_storage *sa, Rep *rep);
-// returns 0 on success
-int reply_request(const Socks5ServerCtx *ctx, int fd, Rep rep, Atyp atyp, struct sockaddr_storage *sa);
-// returns -1 on error
-int connect_dst(const Socks5ServerCtx *ctx, Atyp atyp, struct sockaddr_storage *sa, int type, int proto);
-
-// is_valid* returns non zero on success
-int is_valid_cmd(Cmd cmd);
-int is_valid_atyp(Atyp atyp);
-
-char *atyp_str(Atyp atyp);
-char *cmd_str(Cmd cmd);
-char *rep_str(Rep rep);
-char *auth_method_str(AuthMethod method);
+char *socks5_atyp_str(Atyp atyp);
+char *socks5_cmd_str(Cmd cmd);
+char *socks5_rep_str(Rep rep);
+char *socks5_auth_method_str(AuthMethod method);

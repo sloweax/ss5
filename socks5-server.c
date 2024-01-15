@@ -86,15 +86,15 @@ int main(int argc, char **argv)
 		signal(SIGCHLD, SIG_IGN)    == SIG_ERR)
 		die("signal:");
 
-	serverfd = create_tcp_server(host, port, BACKLOG);
+	serverfd = socks5_create_tcp_server(host, port, BACKLOG);
 	if (serverfd == -1)
 		die("could not create server");
 
 	if (ctx.flags & FLAG_NO_AUTH)
-		printf("accepting %s\n", auth_method_str(NO_AUTH));
+		printf("accepting %s\n", socks5_auth_method_str(NO_AUTH));
 
 	if (ctx.flags & FLAG_USERPASS_AUTH)
-		printf("accepting %s\n", auth_method_str(USERPASS_AUTH));
+		printf("accepting %s\n", socks5_auth_method_str(USERPASS_AUTH));
 
 	if (!(ctx.flags & (FLAG_NO_AUTH | FLAG_USERPASS_AUTH)))
 		die("no auth method provided, exiting\n%s -h for help", argv[0]);
@@ -145,7 +145,7 @@ int main(int argc, char **argv)
 
 			close(cfd);
 
-			socks5_ctx_free(&ctx);
+			socks5_server_ctx_free(&ctx);
 
 			exit(0);
 		} else {
@@ -156,7 +156,7 @@ int main(int argc, char **argv)
 	while (wait(NULL) > 0);
 
 	close(serverfd);
-	socks5_ctx_free(&ctx);
+	socks5_server_ctx_free(&ctx);
 
 	return 0;
 }
