@@ -17,14 +17,14 @@ typedef unsigned char Cmd;
 typedef unsigned char Atyp;
 typedef unsigned char Rep;
 
-struct Socks5ServerCtx {
+struct S5ServerCtx {
 	LL *userpass;
 	int flags;
 };
 
-typedef struct Socks5ServerCtx Socks5ServerCtx;
+typedef struct S5ServerCtx S5ServerCtx;
 
-enum Socks5ServerFlags {
+enum S5ServerFlags {
 	FLAG_NO_AUTH = 1 << 0,
 	FLAG_USERPASS_AUTH = 1 << 1,
 };
@@ -58,16 +58,16 @@ enum Reps {
 };
 
 // returns 0 on success
-int socks5_server_ctx_init(Socks5ServerCtx *ctx);
-void socks5_server_ctx_free(Socks5ServerCtx *ctx);
+int s5_server_ctx_init(S5ServerCtx *ctx);
+void s5_server_ctx_free(S5ServerCtx *ctx);
 // returns 0 on success
-int socks5_server_add_userpass(Socks5ServerCtx *ctx, char *userpass);
-void socks5_server_handler(const Socks5ServerCtx *ctx, int fd);
+int s5_server_add_userpass(S5ServerCtx *ctx, char *userpass);
+void s5_server_handler(const S5ServerCtx *ctx, int fd);
 
 // returns -1 on error
-int socks5_create_tcp_server(const char *host, const char *port, int backlog);
+int s5_create_tcp_server(const char *host, const char *port, int backlog);
 
-char *socks5_atyp_str(Atyp atyp);
-char *socks5_cmd_str(Cmd cmd);
-char *socks5_rep_str(Rep rep);
-char *socks5_auth_method_str(AuthMethod method);
+char *s5_atyp_str(Atyp atyp);
+char *s5_cmd_str(Cmd cmd);
+char *s5_rep_str(Rep rep);
+char *s5_auth_method_str(AuthMethod method);

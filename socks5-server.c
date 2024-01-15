@@ -25,11 +25,11 @@ void int_handler(int sig)
 
 int main(int argc, char **argv)
 {
-	Socks5ServerCtx ctx;
+	S5ServerCtx ctx;
 	char *host = HOST, *port = PORT;
 	int opt;
 
-	if (socks5_server_ctx_init(&ctx) != 0)
+	if (s5_server_ctx_init(&ctx) != 0)
 		die("socks5_server_ctx_init:");
 
 	while((opt = getopt(argc, argv, ":l:p:hnu:U:")) != -1) {
@@ -50,7 +50,7 @@ int main(int argc, char **argv)
 						read--;
 					}
 					if (read == 0) continue;
-					if (socks5_server_add_userpass(&ctx, line) != 0)
+					if (s5_server_add_userpass(&ctx, line) != 0)
 						die("socks5_server_add_userpass:");
 				}
 
@@ -60,7 +60,7 @@ int main(int argc, char **argv)
 			break;
 		case 'u':
 			ctx.flags |= FLAG_USERPASS_AUTH;
-			if (socks5_server_add_userpass(&ctx, optarg) != 0)
+			if (s5_server_add_userpass(&ctx, optarg) != 0)
 				die("socks5_server_add_userpass:");
 			break;
 		case 'n': ctx.flags |= FLAG_NO_AUTH; break;
@@ -86,15 +86,15 @@ int main(int argc, char **argv)
 		signal(SIGCHLD, SIG_IGN)    == SIG_ERR)
 		die("signal:");
 
-	serverfd = socks5_create_tcp_server(host, port, BACKLOG);
+	serverfd = s5_create_tcp_server(host, port, BACKLOG);
 	if (serverfd == -1)
 		die("could not create server");
 
 	if (ctx.flags & FLAG_NO_AUTH)
-		printf("accepting %s\n", socks5_auth_method_str(NO_AUTH));
+		printf("accepting %s\n", s5_auth_method_str(NO_AUTH));
 
 	if (ctx.flags & FLAG_USERPASS_AUTH)
-		printf("accepting %s\n", socks5_auth_method_str(USERPASS_AUTH));
+		printf("accepting %s\n", s5_auth_method_str(USERPASS_AUTH));
 
 	if (!(ctx.flags & (FLAG_NO_AUTH | FLAG_USERPASS_AUTH)))
 		die("no auth method provided, exiting\n%s -h for help", argv[0]);
@@ -141,11 +141,11 @@ int main(int argc, char **argv)
 
 			close(serverfd);
 
-			socks5_server_handler(&ctx, cfd);
+			s5_server_handler(&ctx, cfd);
 
 			close(cfd);
 
-			socks5_server_ctx_free(&ctx);
+			s5_server_ctx_free(&ctx);
 
 			exit(0);
 		} else {
@@ -156,7 +156,7 @@ int main(int argc, char **argv)
 	while (wait(NULL) > 0);
 
 	close(serverfd);
-	socks5_server_ctx_free(&ctx);
+	s5_server_ctx_free(&ctx);
 
 	return 0;
 }

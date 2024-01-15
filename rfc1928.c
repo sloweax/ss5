@@ -12,16 +12,16 @@
 
 static int is_valid_cmd(Cmd cmd);
 static int is_valid_atyp(Atyp atyp);
-static int negotiate_auth_method(const Socks5ServerCtx *ctx, int fd, AuthMethod *method);
-static int handle_auth_method(const Socks5ServerCtx *ctx, int fd, AuthMethod method);
-static AuthMethod choose_auth_method(const Socks5ServerCtx *ctx, AuthMethod *methods, unsigned char nmethods);
-static int auth_userpass(const Socks5ServerCtx *ctx, int fd);
+static int negotiate_auth_method(const S5ServerCtx *ctx, int fd, AuthMethod *method);
+static int handle_auth_method(const S5ServerCtx *ctx, int fd, AuthMethod method);
+static AuthMethod choose_auth_method(const S5ServerCtx *ctx, AuthMethod *methods, unsigned char nmethods);
+static int auth_userpass(const S5ServerCtx *ctx, int fd);
 static void bridge_fd(int fd1, int fd2);
-static int connect_dst(const Socks5ServerCtx *ctx, Atyp atyp, struct sockaddr_storage *sa, int type, int proto);
-static int get_request(const Socks5ServerCtx *ctx, int fd, Cmd *cmd, Atyp *atyp, struct sockaddr_storage *sa, Rep *rep);
-static int reply_request(const Socks5ServerCtx *ctx, int fd, Rep rep, Atyp atyp, struct sockaddr_storage *sa);
+static int connect_dst(const S5ServerCtx *ctx, Atyp atyp, struct sockaddr_storage *sa, int type, int proto);
+static int get_request(const S5ServerCtx *ctx, int fd, Cmd *cmd, Atyp *atyp, struct sockaddr_storage *sa, Rep *rep);
+static int reply_request(const S5ServerCtx *ctx, int fd, Rep rep, Atyp atyp, struct sockaddr_storage *sa);
 
-void socks5_server_ctx_free(Socks5ServerCtx *ctx)
+void s5_server_ctx_free(S5ServerCtx *ctx)
 {
 	LLNode *node = ctx->userpass->head;
 	while (node) {
@@ -31,7 +31,7 @@ void socks5_server_ctx_free(Socks5ServerCtx *ctx)
 	ll_free(ctx->userpass);
 }
 
-int socks5_server_ctx_init(Socks5ServerCtx *ctx)
+int s5_server_ctx_init(S5ServerCtx *ctx)
 {
 	ctx->flags = 0;
 	ctx->userpass = ll_create();
@@ -39,7 +39,7 @@ int socks5_server_ctx_init(Socks5ServerCtx *ctx)
 	return 0;
 }
 
-int socks5_server_add_userpass(Socks5ServerCtx *ctx, char *userpass)
+int s5_server_add_userpass(S5ServerCtx *ctx, char *userpass)
 {
 	size_t len = strlen(userpass);
 	char *buf = malloc(len + 1);
@@ -48,7 +48,7 @@ int socks5_server_add_userpass(Socks5ServerCtx *ctx, char *userpass)
 	return ll_append(ctx->userpass, buf);
 }
 
-static int auth_userpass(const Socks5ServerCtx *ctx, int fd)
+static int auth_userpass(const S5ServerCtx *ctx, int fd)
 {
 	char userpass[256 + 256 + 2];
 	userpass[0] = 0;
@@ -81,7 +81,7 @@ static int auth_userpass(const Socks5ServerCtx *ctx, int fd)
 	return status == 0 ? 0 : 1;
 }
 
-void socks5_server_handler(const Socks5ServerCtx *ctx, int fd)
+void s5_server_handler(const S5ServerCtx *ctx, int fd)
 {
 	AuthMethod method;
 
@@ -90,7 +90,7 @@ void socks5_server_handler(const Socks5ServerCtx *ctx, int fd)
 		return;
 	}
 
-	DLOGF("method: %s\n", socks5_auth_method_str(method));
+	DLOGF("method: %s\n", s5_auth_method_str(method));
 
 	if (method == INVALID_AUTH_METHOD) return;
 
@@ -105,7 +105,7 @@ void socks5_server_handler(const Socks5ServerCtx *ctx, int fd)
 		return;
 	}
 
-	DLOGF("cmd: %s atyp: %s\n", socks5_cmd_str(cmd), socks5_atyp_str(atyp));
+	DLOGF("cmd: %s atyp: %s\n", s5_cmd_str(cmd), s5_atyp_str(atyp));
 
 	if (rep != REP_OK) goto reply;
 
@@ -130,7 +130,7 @@ void socks5_server_handler(const Socks5ServerCtx *ctx, int fd)
 
 reply:
 
-	DLOGF("replying: %s\n", socks5_rep_str(rep));
+	DLOGF("replying: %s\n", s5_rep_str(rep));
 
 	if (reply_request(ctx, fd, rep, atyp, &sa) != 0) {
 		DLOGF("reply failed\n");
@@ -211,7 +211,7 @@ static int is_valid_atyp(Atyp atyp)
 	}
 }
 
-char *socks5_atyp_str(Atyp atyp)
+char *s5_atyp_str(Atyp atyp)
 {
 	switch (atyp) {
 	case ATYP_IPV4:        return "IPV4";
@@ -221,7 +221,7 @@ char *socks5_atyp_str(Atyp atyp)
 	}
 }
 
-char *socks5_rep_str(Rep rep)
+char *s5_rep_str(Rep rep)
 {
 	switch (rep) {
 	case REP_OK:                 return "OK";
@@ -234,7 +234,7 @@ char *socks5_rep_str(Rep rep)
 	}
 }
 
-char *socks5_auth_method_str(AuthMethod method)
+char *s5_auth_method_str(AuthMethod method)
 {
 	switch (method) {
 	case USERPASS_AUTH:       return "USER:PASS AUTH";
@@ -244,7 +244,7 @@ char *socks5_auth_method_str(AuthMethod method)
 	}
 }
 
-char *socks5_cmd_str(Cmd cmd)
+char *s5_cmd_str(Cmd cmd)
 {
 	switch (cmd) {
 	case CMD_BIND:    return "BIND";
@@ -253,7 +253,7 @@ char *socks5_cmd_str(Cmd cmd)
 	}
 }
 
-static int connect_dst(const Socks5ServerCtx *ctx, Atyp atyp, struct sockaddr_storage *sa, int type, int proto)
+static int connect_dst(const S5ServerCtx *ctx, Atyp atyp, struct sockaddr_storage *sa, int type, int proto)
 {
 	switch (atyp) {
 	case ATYP_IPV4:
@@ -281,7 +281,7 @@ static int connect_dst(const Socks5ServerCtx *ctx, Atyp atyp, struct sockaddr_st
 	return fd;
 }
 
-static int reply_request(const Socks5ServerCtx *ctx, int fd, Rep rep, Atyp atyp, struct sockaddr_storage *sa)
+static int reply_request(const S5ServerCtx *ctx, int fd, Rep rep, Atyp atyp, struct sockaddr_storage *sa)
 {
 	unsigned char ver = 5, rsv = 0;
 
@@ -306,7 +306,7 @@ static int reply_request(const Socks5ServerCtx *ctx, int fd, Rep rep, Atyp atyp,
 	return 0;
 }
 
-static int get_request(const Socks5ServerCtx *ctx, int fd, Cmd *cmd, Atyp *atyp, struct sockaddr_storage *sa, Rep *rep)
+static int get_request(const S5ServerCtx *ctx, int fd, Cmd *cmd, Atyp *atyp, struct sockaddr_storage *sa, Rep *rep)
 {
 	*rep = REP_FAIL;
 	bzero(sa, sizeof(*sa));
@@ -375,7 +375,7 @@ static int get_request(const Socks5ServerCtx *ctx, int fd, Cmd *cmd, Atyp *atyp,
 	return 0;
 }
 
-static AuthMethod choose_auth_method(const Socks5ServerCtx *ctx, AuthMethod *methods, unsigned char nmethods)
+static AuthMethod choose_auth_method(const S5ServerCtx *ctx, AuthMethod *methods, unsigned char nmethods)
 {
 	if (ctx->flags & FLAG_NO_AUTH && memchr(methods, NO_AUTH, nmethods))
 		return NO_AUTH;
@@ -384,7 +384,7 @@ static AuthMethod choose_auth_method(const Socks5ServerCtx *ctx, AuthMethod *met
 	return INVALID_AUTH_METHOD;
 }
 
-static int handle_auth_method(const Socks5ServerCtx *ctx, int fd, AuthMethod method)
+static int handle_auth_method(const S5ServerCtx *ctx, int fd, AuthMethod method)
 {
 	switch (method) {
 	case NO_AUTH:
@@ -396,7 +396,7 @@ static int handle_auth_method(const Socks5ServerCtx *ctx, int fd, AuthMethod met
 	}
 }
 
-static int negotiate_auth_method(const Socks5ServerCtx *ctx, int fd, AuthMethod *method)
+static int negotiate_auth_method(const S5ServerCtx *ctx, int fd, AuthMethod *method)
 {
 	unsigned char ver, nmethods;
 	AuthMethod methods[0xff], smethod;
@@ -419,7 +419,7 @@ static int negotiate_auth_method(const Socks5ServerCtx *ctx, int fd, AuthMethod 
 	return 0;
 }
 
-int socks5_create_tcp_server(const char *host, const char *port, int backlog)
+int s5_create_tcp_server(const char *host, const char *port, int backlog)
 {
 	struct addrinfo hints, *res;
 	bzero(&hints, sizeof(hints));
