@@ -419,18 +419,18 @@ static int negotiate_auth_method(const S5ServerCtx *ctx, int fd, S5AuthMethod *m
 	return 0;
 }
 
-int s5_create_tcp_server(const char *host, const char *port, int backlog)
+int s5_create_server(const char *host, const char *port, int backlog, int proto, int socktype)
 {
 	struct addrinfo hints, *res;
 	bzero(&hints, sizeof(hints));
 	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_socktype = socktype;
 	hints.ai_flags = AI_PASSIVE;
 
 	if (getaddrinfo(host, port, &hints, &res) != 0)
 		return -1;
 
-	int sockfd = socket(res->ai_family, res->ai_socktype, IPPROTO_TCP);
+	int sockfd = socket(res->ai_family, res->ai_socktype, proto);
 	if (sockfd == -1)
 		goto error;
 

@@ -86,7 +86,7 @@ int main(int argc, char **argv)
 		signal(SIGCHLD, SIG_IGN)    == SIG_ERR)
 		die("signal:");
 
-	serverfd = s5_create_tcp_server(host, port, BACKLOG);
+	serverfd = s5_create_server(host, port, BACKLOG, IPPROTO_TCP, SOCK_STREAM);
 	if (serverfd == -1)
 		die("could not create server");
 

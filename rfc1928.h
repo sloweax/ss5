@@ -65,7 +65,7 @@ int s5_server_add_userpass(S5ServerCtx *ctx, char *userpass);
 void s5_server_handler(const S5ServerCtx *ctx, int fd);
 
 // returns -1 on error
-int s5_create_tcp_server(const char *host, const char *port, int backlog);
+int s5_create_server(const char *host, const char *port, int backlog, int proto, int socktype);
 
 char *s5_atyp_str(S5Atyp atyp);
 char *s5_cmd_str(S5Cmd cmd);
