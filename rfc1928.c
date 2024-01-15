@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <netdb.h>
 #include <poll.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -11,6 +12,11 @@
 
 void socks5_ctx_free(Socks5ServerCtx *ctx)
 {
+	LLNode *node = ctx->userpass->head;
+	while (node) {
+		free(node->data);
+		node = node->next;
+	}
 	ll_free(ctx->userpass);
 }
 
@@ -24,7 +30,11 @@ int socks5_server_ctx_init(Socks5ServerCtx *ctx)
 
 int socks5_server_add_userpass(const Socks5ServerCtx *ctx, char *userpass)
 {
-	return ll_append(ctx->userpass, userpass);
+	size_t len = strlen(userpass);
+	char *buf = malloc(len + 1);
+	if (buf == NULL) return 1;
+	memcpy(buf, userpass, len + 1);
+	return ll_append(ctx->userpass, buf);
 }
 
 int socks5_server_auth_userpass(const Socks5ServerCtx *ctx, int fd)
