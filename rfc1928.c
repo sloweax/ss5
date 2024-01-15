@@ -75,8 +75,10 @@ static int auth_userpass(const S5ServerCtx *ctx, int fd)
 	}
 
 	if (ver != 1) status = 1;
-	if (write(fd, &ver, sizeof(ver)) != sizeof(ver)) return 1;
-	if (write(fd, &status, sizeof(status)) != sizeof(status)) return 1;
+	unsigned char buf[2];
+	buf[0] = ver;
+	buf[1] = status;
+	if (write(fd, buf, sizeof(buf)) != sizeof(buf)) return 1;
 
 	return status == 0 ? 0 : 1;
 }
