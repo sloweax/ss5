@@ -1,6 +1,8 @@
 CC=cc
 CFLAGS=-Wall -O2
 
+all: socks5-server
+
 %.o: %.c
 	$(CC) $(CFLAGS) $^ -c -o $@
 
@@ -13,4 +15,4 @@ debug: socks5-server
 clean:
 	rm -f *.o socks5-server
 
-.PHONY: clean debug
+.PHONY: clean debug all
