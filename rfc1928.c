@@ -142,7 +142,11 @@ reply:
 	if (rep != S5REP_OK) return 0;
 	if (dstfd == -1) return 1;
 
-	return bridge_fd(fd, dstfd);
+	int r = bridge_fd(fd, dstfd);
+
+	close(dstfd);
+
+	return r;
 }
 
 static int bridge_fd(int fd1, int fd2)
