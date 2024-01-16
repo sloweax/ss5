@@ -25,7 +25,7 @@ struct S5ServerCtx {
 typedef struct S5ServerCtx S5ServerCtx;
 
 enum S5ServerFlags {
-	S5FLAG_NO_AUTH = 1 << 0,
+	S5FLAG_NO_AUTH       = 1 << 0,
 	S5FLAG_USERPASS_AUTH = 1 << 1,
 };
 
