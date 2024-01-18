@@ -23,6 +23,21 @@ void int_handler(int sig)
 	run = 0;
 }
 
+void usage(int argc, char **argv)
+{
+	(void)argc;
+	printf(
+		"usage: %s [OPTION]...\n"
+		"OPTION:\n"
+		"     -h                  shows usage and exits\n"
+		"     -n                  allow NO AUTH\n"
+		"     -u user:pass        add user:pass\n"
+		"     -U file             add all user:pass from file\n"
+		"     -p port             listen on port ("PORT" by default)\n"
+		"     -l host             listen on host ("HOST" by default)\n"
+	, argv[0]);
+}
+
 int main(int argc, char **argv)
 {
 	S5ServerCtx ctx;
@@ -67,16 +82,8 @@ int main(int argc, char **argv)
 		case 'l': host = optarg; break;
 		case 'p': port = optarg; break;
 		case 'h':
-			die(
-				"usage: %s [OPTION]...\n"
-				"OPTION:\n"
-				"     -h                  shows usage and exits\n"
-				"     -n                  allow NO AUTH\n"
-				"     -u user:pass        add user:pass\n"
-				"     -U file             add all user:pass from file\n"
-				"     -p port             listen on port ("PORT" by default)\n"
-				"     -l host             listen on host ("HOST" by default)"
-			, argv[0]);
+			usage(argc, argv);
+			return 0;
 		case '?':
 			die("unknown option -%c\n%s -h for help", optopt, argv[0]);
 		}
