@@ -8,6 +8,7 @@ OPTION:
      -U file             add all user:pass from file
      -p port             listen on port (1080 by default)
      -l host             listen on host (0.0.0.0 by default)
+     -w workers          number of workers (4 by default)
 ```
 
 ## Build

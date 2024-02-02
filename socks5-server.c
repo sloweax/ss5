@@ -11,16 +11,90 @@
 #define PORT "1080"
 #define HOST "0.0.0.0"
 #define BACKLOG 8
+#define WORKERS 4
 
+int nworkers = WORKERS;
+pid_t *workers;
 int run = 1;
 int serverfd;
+S5ServerCtx ctx;
 
 void int_handler(int sig)
 {
 	(void)sig;
-	if (shutdown(serverfd, SHUT_RD) == -1)
+	for (int i = 0; i < nworkers; i++)
+		kill(workers[i], SIGINT);
+
+	if (shutdown(serverfd, SHUT_RD) != 0)
 		die("shutdown:");
+}
+
+void worker_int_handler(int sig)
+{
+	(void)sig;
 	run = 0;
+}
+
+int create_worker()
+{
+	pid_t pid = fork();
+
+	if (pid == -1)
+		die("fork:");
+
+	if (pid != 0)
+		return pid;
+
+	struct sockaddr_storage cli;
+	socklen_t cli_len = sizeof(cli);
+
+	if (signal(SIGINT, worker_int_handler) == SIG_ERR) {
+		fprintf(stderr, "worker %d: signal: ", getpid());
+		perror(NULL);
+		kill(getppid(), SIGINT);
+		_Exit(1);
+	}
+
+	while (run) {
+		int cfd = accept(serverfd, (struct sockaddr *)&cli, &cli_len);
+
+		if (!run) {
+			if (cfd != -1)
+				close(cfd);
+			break;
+		}
+
+		if (cfd == -1) {
+			fprintf(stderr, "worker %d: accept: ", getpid());
+			perror(NULL);
+			kill(getppid(), SIGINT);
+			_Exit(1);
+		}
+
+		char clihost[INET6_ADDRSTRLEN];
+		clihost[0] = 0;
+
+		switch (cli.ss_family) {
+		case AF_INET:
+			inet_ntop(cli.ss_family, &((struct sockaddr_in *)&cli)->sin_addr, clihost, sizeof(clihost));
+			break;
+		case AF_INET6:
+			inet_ntop(cli.ss_family, &((struct sockaddr_in6 *)&cli)->sin6_addr, clihost, sizeof(clihost));
+			break;
+		}
+
+		printf("connection from %s\n", clihost);
+
+		s5_server_handler(&ctx, cfd);
+
+		close(cfd);
+	}
+
+	printf("stopped worker %d\n", getpid());
+
+	close(serverfd);
+	s5_server_ctx_free(&ctx);
+	_Exit(0);
 }
 
 void usage(int argc, char **argv)
@@ -35,19 +109,19 @@ void usage(int argc, char **argv)
 		"     -U file             add all user:pass from file\n"
 		"     -p port             listen on port ("PORT" by default)\n"
 		"     -l host             listen on host ("HOST" by default)\n"
-	, argv[0]);
+		"     -w workers          number of workers (%d by default)\n"
+	, argv[0], WORKERS);
 }
 
 int main(int argc, char **argv)
 {
-	S5ServerCtx ctx;
 	char *host = HOST, *port = PORT;
 	int opt;
 
 	if (s5_server_ctx_init(&ctx) != 0)
 		die("socks5_server_ctx_init:");
 
-	while((opt = getopt(argc, argv, ":l:p:hnu:U:")) != -1) {
+	while((opt = getopt(argc, argv, ":l:p:hnu:U:w:")) != -1) {
 		switch(opt) {
 		case 'U':
 			{
@@ -78,6 +152,11 @@ int main(int argc, char **argv)
 			if (s5_server_add_userpass(&ctx, optarg) != 0)
 				die("socks5_server_add_userpass:");
 			break;
+		case 'w':
+			nworkers = atoi(optarg);
+			if (nworkers <= 0)
+				die("`-w %s` is invalid\n%s -h for help", optarg, argv[0]);
+			break;
 		case 'n': ctx.flags |= S5FLAG_NO_AUTH; break;
 		case 'l': host = optarg; break;
 		case 'p': port = optarg; break;
@@ -89,9 +168,9 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (signal(SIGINT, int_handler) == SIG_ERR ||
-		signal(SIGCHLD, SIG_IGN)    == SIG_ERR)
-		die("signal:");
+	workers = malloc(nworkers * sizeof(pid_t));
+	if (workers == NULL)
+		die("malloc:");
 
 	serverfd = s5_create_server(host, port, BACKLOG, IPPROTO_TCP);
 	if (serverfd == -1)
@@ -108,62 +187,21 @@ int main(int argc, char **argv)
 
 	printf("listening on %s:%s\n", host, port);
 
-	struct sockaddr_storage cli;
-	socklen_t cli_len = sizeof(cli);
+	if (signal(SIGINT, int_handler) == SIG_ERR)
+		die("signal:");
 
-	while (run) {
-		int cfd = accept(serverfd, (struct sockaddr *)&cli, &cli_len);
-
-		if (!run) {
-			if (cfd != -1)
-				close(cfd);
-			break;
-		}
-
-		if (cfd == -1)
-			die("accept:");
-
-		int pid = fork();
-
-		if (pid == -1)
-			die("fork:");
-
-		if (pid == 0) {
-			char clihost[INET6_ADDRSTRLEN];
-			clihost[0] = 0;
-
-			switch (cli.ss_family) {
-			case AF_INET:
-				inet_ntop(cli.ss_family, &((struct sockaddr_in *)&cli)->sin_addr, clihost, sizeof(clihost));
-				break;
-			case AF_INET6:
-				inet_ntop(cli.ss_family, &((struct sockaddr_in6 *)&cli)->sin6_addr, clihost, sizeof(clihost));
-				break;
-			}
-
-			printf("connection from %s\n", clihost);
-
-			if (signal(SIGINT, SIG_DFL) == SIG_ERR)
-				die("signal:");
-
-			close(serverfd);
-
-			s5_server_handler(&ctx, cfd);
-
-			close(cfd);
-
-			s5_server_ctx_free(&ctx);
-
-			exit(0);
-		} else {
-			close(cfd);
-		}
+	for (int i = 0; i < nworkers; i++) {
+		pid_t pid = create_worker();
+		workers[i] = pid;
+		printf("starting worker %d\n", pid);
 	}
 
-	while (wait(NULL) > 0);
+	s5_server_ctx_free(&ctx);
+
+	for (int i = 0; i < nworkers; i++)
+		wait(NULL);
 
 	close(serverfd);
-	s5_server_ctx_free(&ctx);
 
 	return 0;
 }
