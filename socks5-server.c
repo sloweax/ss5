@@ -37,6 +37,7 @@ void worker_int_handler(int sig)
 
 int create_worker()
 {
+	int r = 0;
 	pid_t pid = fork();
 
 	if (pid == -1)
@@ -52,7 +53,8 @@ int create_worker()
 		fprintf(stderr, "worker %d: signal: ", getpid());
 		perror(NULL);
 		kill(getppid(), SIGINT);
-		_Exit(1);
+		r = 1;
+		goto exit;
 	}
 
 	while (run) {
@@ -68,7 +70,8 @@ int create_worker()
 			fprintf(stderr, "worker %d: accept: ", getpid());
 			perror(NULL);
 			kill(getppid(), SIGINT);
-			_Exit(1);
+			r = 1;
+			goto exit;
 		}
 
 		char clihost[INET6_ADDRSTRLEN];
@@ -90,11 +93,14 @@ int create_worker()
 		close(cfd);
 	}
 
+exit:
+
 	printf("stopped worker %d\n", getpid());
 
+	free(workers);
 	close(serverfd);
 	s5_server_ctx_free(&ctx);
-	_Exit(0);
+	_Exit(r);
 }
 
 void usage(int argc, char **argv)
@@ -202,6 +208,7 @@ int main(int argc, char **argv)
 		wait(NULL);
 
 	close(serverfd);
+	free(workers);
 
 	return 0;
 }
