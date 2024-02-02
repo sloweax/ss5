@@ -1,5 +1,5 @@
 CC=cc
-CFLAGS=-Wall -O2
+CFLAGS=-Wall -Wextra -O2
 
 all: socks5-server
 
