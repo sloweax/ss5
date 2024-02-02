@@ -123,10 +123,13 @@ int s5_server_handler(const S5ServerCtx *ctx, int fd)
 		switch (errno) {
 		case ENETUNREACH:
 			rep = S5REP_NETWORK_UNREACHABLE;
+			break;
 		case ECONNREFUSED:
 			rep = S5REP_CONNECTION_REFUSED;
+			break;
 		default:
 			rep = S5REP_FAIL;
+			break;
 		}
 	}
 
@@ -260,6 +263,7 @@ char *s5_cmd_str(S5Cmd cmd)
 
 static int connect_dst(const S5ServerCtx *ctx, S5Atyp atyp, struct sockaddr_storage *sa, int type, int proto)
 {
+	(void)ctx;
 	switch (atyp) {
 	case S5ATYP_IPV4:
 	case S5ATYP_IPV6:
@@ -288,6 +292,7 @@ static int connect_dst(const S5ServerCtx *ctx, S5Atyp atyp, struct sockaddr_stor
 
 static int reply_request(const S5ServerCtx *ctx, int fd, S5Rep rep, S5Atyp atyp, struct sockaddr_storage *sa)
 {
+	(void)ctx;
 	unsigned char buf[4 + 8 + 2], *tmp;
 	tmp = buf;
 	*tmp++ = 5; // version
@@ -317,6 +322,7 @@ static int reply_request(const S5ServerCtx *ctx, int fd, S5Rep rep, S5Atyp atyp,
 
 static int get_request(const S5ServerCtx *ctx, int fd, S5Cmd *cmd, S5Atyp *atyp, struct sockaddr_storage *sa, S5Rep *rep)
 {
+	(void)ctx;
 	*rep = S5REP_FAIL;
 	bzero(sa, sizeof(*sa));
 	struct addrinfo *ainfo, *tmp;
