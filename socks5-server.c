@@ -9,7 +9,7 @@
 #include <unistd.h>
 
 #define PORT "1080"
-#define HOST "0.0.0.0"
+#define ADDR "0.0.0.0"
 #define BACKLOG 8
 #define WORKERS 4
 
@@ -134,20 +134,20 @@ void usage(int argc, char **argv)
 		"     -u user:pass        add user:pass\n"
 		"     -U file             add all user:pass from file\n"
 		"     -p port             listen on port ("PORT" by default)\n"
-		"     -l host             listen on host ("HOST" by default)\n"
+		"     -a addr             bind on addr ("ADDR" by default)\n"
 		"     -w workers          number of workers (%d by default)\n"
 	, argv[0], WORKERS);
 }
 
 int main(int argc, char **argv)
 {
-	char *host = HOST, *port = PORT;
+	char *addr = ADDR, *port = PORT;
 	int opt;
 
 	if (s5_server_ctx_init(&ctx) != 0)
 		die("socks5_server_ctx_init:");
 
-	while((opt = getopt(argc, argv, ":l:p:hnu:U:w:")) != -1) {
+	while((opt = getopt(argc, argv, ":a:p:hnu:U:w:")) != -1) {
 		switch(opt) {
 		case 'U':
 			{
@@ -184,7 +184,7 @@ int main(int argc, char **argv)
 				die("`-w %s` is invalid\n%s -h for help", optarg, argv[0]);
 			break;
 		case 'n': ctx.flags |= S5FLAG_NO_AUTH; break;
-		case 'l': host = optarg; break;
+		case 'a': addr = optarg; break;
 		case 'p': port = optarg; break;
 		case 'h':
 			usage(argc, argv);
@@ -198,7 +198,7 @@ int main(int argc, char **argv)
 	if (workers == NULL)
 		die("malloc:");
 
-	serverfd = s5_create_server(host, port, BACKLOG, IPPROTO_TCP);
+	serverfd = s5_create_server(addr, port, BACKLOG, IPPROTO_TCP);
 	if (serverfd == -1)
 		die("could not create server");
 
@@ -211,7 +211,7 @@ int main(int argc, char **argv)
 	if (!(ctx.flags & (S5FLAG_NO_AUTH | S5FLAG_USERPASS_AUTH)))
 		die("no auth method provided, exiting\n%s -h for help", argv[0]);
 
-	printf("listening on %s:%s\n", host, port);
+	printf("listening on %s:%s\n", addr, port);
 
 	if (signal(SIGINT, int_handler) == SIG_ERR)
 		die("signal:");
