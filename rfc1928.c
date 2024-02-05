@@ -363,7 +363,7 @@ static int get_request(const S5ServerCtx *ctx, int fd, S5Cmd *cmd, S5Atyp *atyp,
 	bzero(sa, sizeof(*sa));
 	struct addrinfo *ainfo, *tmp;
 	unsigned char hostlen;
-	char host[257] = { 0 };
+	char host[257];
 	unsigned char ver, rsv;
 
 	if (read(fd, &ver, sizeof(ver)) != sizeof(ver)) return 1;
@@ -388,6 +388,7 @@ static int get_request(const S5ServerCtx *ctx, int fd, S5Cmd *cmd, S5Atyp *atyp,
 	case S5ATYP_DOMAIN_NAME:
 		if (read(fd, &hostlen, sizeof(hostlen)) != sizeof(hostlen)) return 1;
 		if (read(fd, host, hostlen) != hostlen) return 1;
+		host[hostlen] = 0;
 		if (getaddrinfo(host, NULL, NULL, &ainfo) != 0) return 0;
 
 		tmp = ainfo;
