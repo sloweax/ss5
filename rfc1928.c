@@ -164,17 +164,26 @@ reply:
 
 	if (reply_request(ctx, fd, rep, atyp, &sa) != 0) {
 		S5DLOGF("reply failed\n");
-		return 1;
+		goto exit_close_err;
 	}
 
-	if (rep != S5REP_OK) return 0;
+	if (rep != S5REP_OK) goto exit_close;
 	if (dstfd == -1) return 1;
 
 	int r = bridge_fd(fd, dstfd);
 
+	S5DLOGF("connection %s\n", r == 0 ? "was succesfull" : "failed");
+
 	close(dstfd);
 
 	return r;
+
+exit_close_err:
+	if (dstfd != -1) close(dstfd);
+	return 1;
+exit_close:
+	if (dstfd != -1) close(dstfd);
+	return 0;
 }
 
 static int bridge_fd(int fd1, int fd2)
