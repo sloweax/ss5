@@ -23,9 +23,13 @@ static int reply_request(const S5ServerCtx *ctx, int fd, S5Rep rep, S5Atyp atyp,
 
 void s5_server_ctx_free(S5ServerCtx *ctx)
 {
+	char **data;
 	LLNode *node = ctx->userpass->head;
 	while (node) {
-		free(node->data);
+		data = node->data;
+		free(data[0]);
+		free(data[1]);
+		free(data);
 		node = node->next;
 	}
 	ll_free(ctx->userpass);
@@ -39,35 +43,56 @@ int s5_server_ctx_init(S5ServerCtx *ctx)
 	return 0;
 }
 
-int s5_server_add_userpass(S5ServerCtx *ctx, char *userpass)
+int s5_server_add_userpass(S5ServerCtx *ctx, const char *user, const char *pass)
 {
-	size_t len = strlen(userpass);
-	char *buf = malloc(len + 1);
-	if (buf == NULL) return 1;
-	memcpy(buf, userpass, len + 1);
-	return ll_append(ctx->userpass, buf);
+	size_t userlen, passlen;
+	userlen = strlen(user);
+	passlen = strlen(pass);
+	if (userlen == 0 || passlen == 0) return 1;
+
+	char **data = malloc(sizeof(char*)*2);
+	if (data == NULL) return 1;
+
+	data[0] = malloc(userlen + 1);
+	if (data[0] == NULL) goto exit_free;
+	memcpy(data[0], user, userlen+1);
+
+	data[1] = malloc(passlen + 1);
+	if (data[1] == NULL) goto exit_free_user;
+	memcpy(data[1], pass, passlen+1);
+
+	int r = ll_append(ctx->userpass, data);
+	if (r != 0) goto exit_free_all;
+	return r;
+
+exit_free_all:
+	free(data[1]);
+exit_free_user:
+	free(data[0]);
+exit_free:
+	free(data);
+	return 1;
 }
 
 static int auth_userpass(const S5ServerCtx *ctx, int fd)
 {
-	char userpass[256 + 256 + 2];
-	userpass[0] = 0;
-	char *tmp = userpass;
+	char user[256 + 1];
+	char pass[256 + 1];
 	unsigned char len, ver, status = 1;
 
 	if (read(fd, &ver, sizeof(ver)) != sizeof(ver)) return 1;
 	if (read(fd, &len, sizeof(len)) != sizeof(len)) return 1;
-	if (read(fd, userpass, len) != len) return 1;
-	tmp += len;
-	*tmp++ = ':';
+	if (read(fd, user, len) != len) return 1;
+	user[len] = 0;
 	if (read(fd, &len, sizeof(len)) != sizeof(len)) return 1;
-	if (read(fd, tmp, len) != len) return 1;
-	tmp += len;
-	*tmp = 0;
+	if (read(fd, pass, len) != len) return 1;
+	pass[len] = 0;
 
+	char **data;
 	LLNode *node = ctx->userpass->head;
 	while (node) {
-		if (strcmp(node->data, userpass) == 0) {
+		data = node->data;
+		if (strcmp(data[0], user) == 0 && strcmp(data[1], pass) == 0) {
 			status = 0;
 			break;
 		}

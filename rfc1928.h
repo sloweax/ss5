@@ -60,7 +60,7 @@ enum S5Reps {
 // int functions below return 0 on success
 int s5_server_ctx_init(S5ServerCtx *ctx);
 void s5_server_ctx_free(S5ServerCtx *ctx);
-int s5_server_add_userpass(S5ServerCtx *ctx, char *userpass);
+int s5_server_add_userpass(S5ServerCtx *ctx, const char *user, const char *pass);
 int s5_server_handler(const S5ServerCtx *ctx, int fd);
 
 // returns -1 on error

@@ -19,6 +19,26 @@ int run = 1;
 int serverfd;
 S5ServerCtx ctx;
 
+static int add_userpass(char *userpass)
+{
+	char user[256 + 1];
+	char pass[256 + 1];
+	size_t userlen;
+	size_t passlen;
+	char *tmp = strchr(userpass, ':');
+	if (tmp == NULL) return 1;
+	userlen = tmp - userpass;
+	if (userlen >= sizeof(user)) return 1;
+	memcpy(user, userpass, userlen);
+	user[userlen] = 0;
+	tmp++;
+	passlen = strlen(tmp);
+	if (passlen == 0 || passlen >= sizeof(pass)) return 1;
+	pass[passlen] = 0;
+	memcpy(pass, tmp, passlen);
+	return s5_server_add_userpass(&ctx, user, pass);
+}
+
 void int_handler(int sig)
 {
 	(void)sig;
@@ -145,7 +165,7 @@ int main(int argc, char **argv)
 						read--;
 					}
 					if (read == 0) continue;
-					if (s5_server_add_userpass(&ctx, line) != 0)
+					if (add_userpass(line) != 0)
 						die("socks5_server_add_userpass:");
 				}
 
@@ -155,7 +175,7 @@ int main(int argc, char **argv)
 			break;
 		case 'u':
 			ctx.flags |= S5FLAG_USERPASS_AUTH;
-			if (s5_server_add_userpass(&ctx, optarg) != 0)
+			if (add_userpass(optarg) != 0)
 				die("socks5_server_add_userpass:");
 			break;
 		case 'w':
