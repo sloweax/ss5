@@ -274,6 +274,7 @@ char *s5_rep_str(S5Rep rep)
 	case S5REP_CMD_NOT_SUPPORTED:  return "CMD Not Supported";
 	case S5REP_HOST_UNREACHABLE:   return "Host Unreachable";
 	case S5REP_CONNECTION_REFUSED: return "Connection Refused";
+	case S5REP_NETWORK_UNREACHABLE: return "Network Unreachable";
 	default:                       return "?";
 	}
 }
