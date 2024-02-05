@@ -365,6 +365,7 @@ static int reply_request(int fd, S5Rep rep, S5Atyp atyp, struct sockaddr_storage
 
 static int resolve_atyp(int fd, S5Atyp *atyp, S5Rep *rep, struct sockaddr_storage *sa)
 {
+	bzero(sa, sizeof(*sa));
 	char host[257];
 	unsigned char hostlen;
 	struct addrinfo *ainfo, *tmp;
