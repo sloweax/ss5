@@ -136,8 +136,6 @@ int s5_server_handler(const S5ServerCtx *ctx, int fd)
 		return 1;
 	}
 
-	S5DLOGF("cmd: %s atyp: %s\n", s5_cmd_str(cmd), s5_atyp_str(atyp));
-
 	if (rep != S5REP_OK) goto reply;
 
 	if (!is_valid_cmd(cmd))   rep = S5REP_CMD_NOT_SUPPORTED;
@@ -164,7 +162,7 @@ int s5_server_handler(const S5ServerCtx *ctx, int fd)
 
 reply:
 
-	S5DLOGF("replying: %s\n", s5_rep_str(rep));
+	S5DLOGF("replying: %s cmd: %s atyp: %s\n", s5_rep_str(rep), s5_cmd_str(cmd), s5_atyp_str(atyp));
 
 	if (reply_request(ctx, fd, rep, atyp, &sa) != 0) {
 		S5DLOGF("reply failed\n");
@@ -373,6 +371,8 @@ static int get_request(const S5ServerCtx *ctx, int fd, S5Cmd *cmd, S5Atyp *atyp,
 	if (read(fd, &rsv, sizeof(rsv)) != sizeof(rsv)) return 1;
 	if (read(fd, atyp, sizeof(*atyp)) != sizeof(*atyp)) return 1;
 	if (ver != 5) return 0;
+
+	S5DLOGF("request cmd: %s atyp: %s\n", s5_cmd_str(*cmd), s5_atyp_str(*atyp));
 
 	switch (*atyp) {
 	case S5ATYP_IPV4:
