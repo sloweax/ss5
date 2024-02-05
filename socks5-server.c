@@ -55,7 +55,7 @@ static int add_userpass(char *userpass)
 	return r;
 }
 
-void int_handler(int sig)
+static void int_handler(int sig)
 {
 	(void)sig;
 	for (int i = 0; i < nworkers; i++)
@@ -65,13 +65,13 @@ void int_handler(int sig)
 		die("shutdown:");
 }
 
-void worker_int_handler(int sig)
+static void worker_int_handler(int sig)
 {
 	(void)sig;
 	run = 0;
 }
 
-int create_worker()
+static int create_worker()
 {
 	int r = 0;
 	pid_t pid = fork();
@@ -139,7 +139,7 @@ exit:
 	_Exit(r);
 }
 
-void usage(int argc, char **argv)
+static void usage(int argc, char **argv)
 {
 	(void)argc;
 	printf(
