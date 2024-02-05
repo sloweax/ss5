@@ -1,6 +1,8 @@
 #include "rfc1928.h"
 #include "util.h"
 #include <arpa/inet.h>
+#include <errno.h>
+#include <netdb.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -166,7 +168,7 @@ int main(int argc, char **argv)
 					}
 					if (read == 0) continue;
 					if (add_userpass(line) != 0)
-						die("socks5_server_add_userpass:");
+						die("failed to add userpass `%s`", line);
 				}
 
 				if (line) free(line);
@@ -176,7 +178,7 @@ int main(int argc, char **argv)
 		case 'u':
 			ctx.flags |= S5FLAG_USERPASS_AUTH;
 			if (add_userpass(optarg) != 0)
-				die("socks5_server_add_userpass:");
+				die("failed to add userpass `%s`", optarg);
 			break;
 		case 'w':
 			nworkers = atoi(optarg);
@@ -199,8 +201,12 @@ int main(int argc, char **argv)
 		die("malloc:");
 
 	serverfd = s5_create_server(addr, port, BACKLOG, IPPROTO_TCP);
-	if (serverfd == -1)
-		die("could not create server");
+	if (serverfd == -1) {
+		if (errno)
+			die("could not create server:");
+		else
+			die("could not create server");
+	}
 
 	if (ctx.flags & S5FLAG_NO_AUTH)
 		printf("accepting %s\n", s5_auth_method_str(S5NO_AUTH));
