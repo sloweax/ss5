@@ -51,7 +51,13 @@ int s5_server_add_userpass(S5ServerCtx *ctx, const char *user, const char *pass)
 	passlen = strlen(pass);
 	if (userlen == 0 || passlen == 0) return 1;
 
-	char **data = malloc(sizeof(char*)*2);
+	char **data;
+	for (LLNode *node = ctx->userpass->head; node; node = node->next) {
+		data = node->data;
+		if (strcmp(data[0], user) == 0) return 2;
+	}
+
+	data = malloc(sizeof(char*)*2);
 	if (data == NULL) return 1;
 
 	data[0] = malloc(userlen + 1);
