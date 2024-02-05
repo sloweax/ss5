@@ -105,7 +105,11 @@ static int auth_userpass(const S5ServerCtx *ctx, int fd)
 	buf[1] = status;
 	if (write(fd, buf, sizeof(buf)) != sizeof(buf)) return 1;
 
-	return status == 0 ? 0 : 1;
+	if (status != 0) {
+		S5DLOGF("invalid user/password\n");
+	}
+
+	return status;
 }
 
 int s5_server_handler(const S5ServerCtx *ctx, int fd)
@@ -117,7 +121,7 @@ int s5_server_handler(const S5ServerCtx *ctx, int fd)
 		return 1;
 	}
 
-	S5DLOGF("method: %s\n", s5_auth_method_str(method));
+	S5DLOGF("auth: %s\n", s5_auth_method_str(method));
 
 	if (method == S5INVALID_AUTH_METHOD) return 0;
 
@@ -258,7 +262,7 @@ char *s5_atyp_str(S5Atyp atyp)
 	switch (atyp) {
 	case S5ATYP_IPV4:        return "IPV4";
 	case S5ATYP_IPV6:        return "IPV6";
-	case S5ATYP_DOMAIN_NAME: return "DOMAIN NAME";
+	case S5ATYP_DOMAIN_NAME: return "Domain Name";
 	default:                 return "?";
 	}
 }
@@ -267,11 +271,11 @@ char *s5_rep_str(S5Rep rep)
 {
 	switch (rep) {
 	case S5REP_OK:                 return "OK";
-	case S5REP_FAIL:               return "FAIL";
-	case S5REP_ATYP_NOT_SUPPORTED: return "ATYP NOT SUPPORTED";
-	case S5REP_CMD_NOT_SUPPORTED:  return "CMD NOT SUPPORTED";
-	case S5REP_HOST_UNREACHABLE:   return "HOST UNREACHABLE";
-	case S5REP_CONNECTION_REFUSED: return "CONNECTION REFUSED";
+	case S5REP_FAIL:               return "General server Failure";
+	case S5REP_ATYP_NOT_SUPPORTED: return "ATYP Not Supported";
+	case S5REP_CMD_NOT_SUPPORTED:  return "CMD Not Supported";
+	case S5REP_HOST_UNREACHABLE:   return "Host Unreachable";
+	case S5REP_CONNECTION_REFUSED: return "Connection Refused";
 	default:                       return "?";
 	}
 }
@@ -279,9 +283,9 @@ char *s5_rep_str(S5Rep rep)
 char *s5_auth_method_str(S5AuthMethod method)
 {
 	switch (method) {
-	case S5USERPASS_AUTH:       return "USER:PASS AUTH";
-	case S5NO_AUTH:             return "NO AUTH";
-	case S5INVALID_AUTH_METHOD: return "INVALID AUTH METHOD";
+	case S5USERPASS_AUTH:       return "User:Pass Auth";
+	case S5NO_AUTH:             return "No Auth";
+	case S5INVALID_AUTH_METHOD: return "Invalid Auth Method";
 	default:                    return "?";
 	}
 }
