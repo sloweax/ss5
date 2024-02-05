@@ -28,17 +28,31 @@ static int add_userpass(char *userpass)
 	size_t userlen;
 	size_t passlen;
 	char *tmp = strchr(userpass, ':');
-	if (tmp == NULL) return 1;
+
+	if (tmp == NULL)
+		die("user:pass `%s` is missing `:`", userpass);
+
 	userlen = tmp - userpass;
-	if (userlen >= sizeof(user)) return 1;
+
+	if (userlen == 0 || userlen >= sizeof(user))
+		die("username length must be between 1-256");
+
 	memcpy(user, userpass, userlen);
 	user[userlen] = 0;
 	tmp++;
 	passlen = strlen(tmp);
-	if (passlen == 0 || passlen >= sizeof(pass)) return 1;
+
+	if (passlen == 0 || passlen >= sizeof(pass))
+		die("password length must be between 1-256");
+
 	pass[passlen] = 0;
 	memcpy(pass, tmp, passlen);
-	return s5_server_add_userpass(&ctx, user, pass);
+	int r = s5_server_add_userpass(&ctx, user, pass);
+
+	if (r == 2)
+		die("user `%s` is already registered", user);
+
+	return r;
 }
 
 void int_handler(int sig)
@@ -168,7 +182,7 @@ int main(int argc, char **argv)
 					}
 					if (read == 0) continue;
 					if (add_userpass(line) != 0)
-						die("failed to add userpass `%s`", line);
+						die("failed to add user:pass `%s`", line);
 				}
 
 				if (line) free(line);
@@ -178,7 +192,7 @@ int main(int argc, char **argv)
 		case 'u':
 			ctx.flags |= S5FLAG_USERPASS_AUTH;
 			if (add_userpass(optarg) != 0)
-				die("failed to add userpass `%s`", optarg);
+				die("failed to add user:pass `%s`", optarg);
 			break;
 		case 'w':
 			nworkers = atoi(optarg);
