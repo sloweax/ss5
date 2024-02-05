@@ -271,7 +271,7 @@ char *s5_rep_str(S5Rep rep)
 {
 	switch (rep) {
 	case S5REP_OK:                 return "OK";
-	case S5REP_FAIL:               return "General server Failure";
+	case S5REP_FAIL:               return "General Server Failure";
 	case S5REP_ATYP_NOT_SUPPORTED: return "ATYP Not Supported";
 	case S5REP_CMD_NOT_SUPPORTED:  return "CMD Not Supported";
 	case S5REP_HOST_UNREACHABLE:   return "Host Unreachable";
