@@ -17,9 +17,10 @@ static int handle_auth_method(const S5ServerCtx *ctx, int fd, S5AuthMethod metho
 static S5AuthMethod choose_auth_method(const S5ServerCtx *ctx, S5AuthMethod *methods, unsigned char nmethods);
 static int auth_userpass(const S5ServerCtx *ctx, int fd);
 static int bridge_fd(int fd1, int fd2);
-static int connect_dst(const S5ServerCtx *ctx, S5Atyp atyp, struct sockaddr_storage *sa, int type, int proto);
-static int get_request(const S5ServerCtx *ctx, int fd, S5Cmd *cmd, S5Atyp *atyp, struct sockaddr_storage *sa, S5Rep *rep);
-static int reply_request(const S5ServerCtx *ctx, int fd, S5Rep rep, S5Atyp atyp, struct sockaddr_storage *sa);
+static int connect_dst(S5Atyp atyp, struct sockaddr_storage *sa, int type, int proto);
+static int resolve_atyp(int fd, S5Atyp *atyp, S5Rep *rep, struct sockaddr_storage *sa);
+static int get_request(int fd, S5Cmd *cmd, S5Atyp *atyp, S5Rep *rep);
+static int reply_request(int fd, S5Rep rep, S5Atyp atyp, struct sockaddr_storage *sa);
 
 void s5_server_ctx_free(S5ServerCtx *ctx)
 {
@@ -131,7 +132,7 @@ int s5_server_handler(const S5ServerCtx *ctx, int fd)
 	S5Rep rep;
 	struct sockaddr_storage sa;
 
-	if (get_request(ctx, fd, &cmd, &atyp, &sa, &rep) != 0) {
+	if (get_request(fd, &cmd, &atyp, &rep) != 0) {
 		S5DLOGF("get_request failed\n");
 		return 1;
 	}
@@ -143,8 +144,15 @@ int s5_server_handler(const S5ServerCtx *ctx, int fd)
 
 	if (rep != S5REP_OK) goto reply;
 
+	if (resolve_atyp(fd, &atyp, &rep, &sa) != 0) {
+		S5DLOGF("resolve_atyp failed\n");
+		return 1;
+	}
+
+	if (rep != S5REP_OK) goto reply;
+
 	errno = 0;
-	dstfd = connect_dst(ctx, atyp, &sa, SOCK_STREAM, IPPROTO_TCP);
+	dstfd = connect_dst(atyp, &sa, SOCK_STREAM, IPPROTO_TCP);
 	if (dstfd == -1) {
 		S5DLOGF("connect_dst failed\n");
 		switch (errno) {
@@ -164,8 +172,8 @@ reply:
 
 	S5DLOGF("replying: %s cmd: %s atyp: %s\n", s5_rep_str(rep), s5_cmd_str(cmd), s5_atyp_str(atyp));
 
-	if (reply_request(ctx, fd, rep, atyp, &sa) != 0) {
-		S5DLOGF("reply failed\n");
+	if (reply_request(fd, rep, atyp, &sa) != 0) {
+		S5DLOGF("reply_request failed\n");
 		goto exit_close_err;
 	}
 
@@ -298,9 +306,8 @@ char *s5_cmd_str(S5Cmd cmd)
 	}
 }
 
-static int connect_dst(const S5ServerCtx *ctx, S5Atyp atyp, struct sockaddr_storage *sa, int type, int proto)
+static int connect_dst(S5Atyp atyp, struct sockaddr_storage *sa, int type, int proto)
 {
-	(void)ctx;
 	switch (atyp) {
 	case S5ATYP_IPV4:
 	case S5ATYP_IPV6:
@@ -327,9 +334,8 @@ static int connect_dst(const S5ServerCtx *ctx, S5Atyp atyp, struct sockaddr_stor
 	return fd;
 }
 
-static int reply_request(const S5ServerCtx *ctx, int fd, S5Rep rep, S5Atyp atyp, struct sockaddr_storage *sa)
+static int reply_request(int fd, S5Rep rep, S5Atyp atyp, struct sockaddr_storage *sa)
 {
-	(void)ctx;
 	unsigned char buf[4 + 8 + 2], *tmp;
 	tmp = buf;
 	*tmp++ = 5; // version
@@ -357,40 +363,29 @@ static int reply_request(const S5ServerCtx *ctx, int fd, S5Rep rep, S5Atyp atyp,
 	return write(fd, buf, tmp - buf) == (tmp - buf) ? 0 : 1;
 }
 
-static int get_request(const S5ServerCtx *ctx, int fd, S5Cmd *cmd, S5Atyp *atyp, struct sockaddr_storage *sa, S5Rep *rep)
+static int resolve_atyp(int fd, S5Atyp *atyp, S5Rep *rep, struct sockaddr_storage *sa)
 {
-	(void)ctx;
-	*rep = S5REP_FAIL;
-	bzero(sa, sizeof(*sa));
-	struct addrinfo *ainfo, *tmp;
-	unsigned char hostlen;
 	char host[257];
-	unsigned char ver, rsv;
-
-	if (read(fd, &ver, sizeof(ver)) != sizeof(ver)) return 1;
-	if (read(fd, cmd, sizeof(*cmd)) != sizeof(*cmd)) return 1;
-	if (read(fd, &rsv, sizeof(rsv)) != sizeof(rsv)) return 1;
-	if (read(fd, atyp, sizeof(*atyp)) != sizeof(*atyp)) return 1;
-	if (ver != 5) return 0;
-
-	S5DLOGF("request cmd: %s atyp: %s\n", s5_cmd_str(*cmd), s5_atyp_str(*atyp));
+	unsigned char hostlen;
+	struct addrinfo *ainfo, *tmp;
+	*rep = S5REP_FAIL;
 
 	switch (*atyp) {
 	case S5ATYP_IPV4:
 		sa->ss_family = AF_INET;
 		if (read(fd, &((struct sockaddr_in *)sa)->sin_addr, 4) != 4) return 1;
 		if (read(fd, &((struct sockaddr_in *)sa)->sin_port, 2) != 2) return 1;
-		break;
+		goto rep_ok;
 	case S5ATYP_IPV6:
 		sa->ss_family = AF_INET6;
 		if (read(fd, &((struct sockaddr_in6 *)sa)->sin6_addr, 8) != 8) return 1;
 		if (read(fd, &((struct sockaddr_in6 *)sa)->sin6_port, 2) != 2) return 1;
-		break;
+		goto rep_ok;
 	case S5ATYP_DOMAIN_NAME:
 		if (read(fd, &hostlen, sizeof(hostlen)) != sizeof(hostlen)) return 1;
 		if (read(fd, host, hostlen) != hostlen) return 1;
 		host[hostlen] = 0;
-		if (getaddrinfo(host, NULL, NULL, &ainfo) != 0) return 0;
+		if (getaddrinfo(host, NULL, NULL, &ainfo) != 0) return 1;
 
 		tmp = ainfo;
 		while (tmp) {
@@ -399,34 +394,50 @@ static int get_request(const S5ServerCtx *ctx, int fd, S5Cmd *cmd, S5Atyp *atyp,
 		}
 
 		if (tmp == NULL) {
-			freeaddrinfo(ainfo);
+			if (ainfo)
+				freeaddrinfo(ainfo);
+			*rep = S5REP_HOST_UNREACHABLE;
 			return 0;
 		}
 
-		memcpy(sa, ainfo->ai_addr, ainfo->ai_addrlen);
+		memcpy(sa, tmp->ai_addr, tmp->ai_addrlen);
 
 		if (tmp->ai_family == AF_INET) {
 			*atyp = S5ATYP_IPV4;
-			if (read(fd, &((struct sockaddr_in *)sa)->sin_port, 2) != 2) {
-				freeaddrinfo(ainfo);
-				return 1;
-			}
+			if (read(fd, &((struct sockaddr_in *)sa)->sin_port, 2) != 2) goto free_error;
 		} else {
 			*atyp = S5ATYP_IPV6;
-			if (read(fd, &((struct sockaddr_in6 *)sa)->sin6_port, 2) != 2) {
-				freeaddrinfo(ainfo);
-				return 1;
-			}
+			if (read(fd, &((struct sockaddr_in6 *)sa)->sin6_port, 2) != 2) goto free_error;
 		}
-
-		freeaddrinfo(ainfo);
-		break;
+		goto free_rep_ok;
 	default:
 		*rep = S5REP_ATYP_NOT_SUPPORTED;
 		return 0;
 	}
 
+free_rep_ok:
+	freeaddrinfo(ainfo);
+rep_ok:
 	*rep = S5REP_OK;
+	return 0;
+free_error:
+	freeaddrinfo(ainfo);
+	return 1;
+}
+
+static int get_request(int fd, S5Cmd *cmd, S5Atyp *atyp, S5Rep *rep)
+{
+	*rep = S5REP_FAIL;
+	unsigned char ver, rsv;
+
+	if (read(fd, &ver, sizeof(ver)) != sizeof(ver)) return 1;
+	if (read(fd, cmd, sizeof(*cmd)) != sizeof(*cmd)) return 1;
+	if (read(fd, &rsv, sizeof(rsv)) != sizeof(rsv)) return 1;
+	if (read(fd, atyp, sizeof(*atyp)) != sizeof(*atyp)) return 1;
+	if (ver != 5) goto exit;
+	*rep = S5REP_OK;
+exit:
+	S5DLOGF("request cmd: %s atyp: %s\n", s5_cmd_str(*cmd), s5_atyp_str(*atyp));
 	return 0;
 }
 
