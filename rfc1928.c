@@ -49,7 +49,7 @@ int s5_server_add_userpass(S5ServerCtx *ctx, const char *user, const char *pass)
 	size_t userlen, passlen;
 	userlen = strlen(user);
 	passlen = strlen(pass);
-	if (userlen == 0 || passlen == 0) return 1;
+	if (userlen == 0 || passlen == 0 || userlen > 256 || passlen > 256) return 1;
 
 	char **data;
 	for (LLNode *node = ctx->userpass->head; node; node = node->next) {
