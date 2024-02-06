@@ -21,7 +21,7 @@ int run = 1;
 int serverfd;
 S5ServerCtx ctx;
 
-static int add_userpass(char *userpass)
+static void add_userpass(const char *userpass)
 {
 	char user[256 + 1];
 	char pass[256 + 1];
@@ -52,7 +52,33 @@ static int add_userpass(char *userpass)
 	if (r == 2)
 		die("user `%s` is already registered", user);
 
-	return r;
+	if (r != 0)
+		die("failed to add user:pass `%s`", userpass);
+}
+
+static void load_userpass_file(const char *filename)
+{
+	char *line = NULL;
+	size_t len;
+	ssize_t read;
+	FILE *f = fopen(filename, "r");
+	if (f == NULL)
+		die("fopen:");
+
+	while ((read = getline(&line, &len, f)) != -1) {
+		if (line[read - 1] == '\n') {
+			line[read - 1] = 0;
+			read--;
+		}
+		if (read == 0) continue;
+		add_userpass(line);
+	}
+
+	if (errno)
+		die("getline:");
+
+	if (line) free(line);
+	fclose(f);
 }
 
 static void int_handler(int sig)
@@ -166,33 +192,12 @@ int main(int argc, char **argv)
 	while((opt = getopt(argc, argv, ":a:p:hnu:U:w:")) != -1) {
 		switch(opt) {
 		case 'U':
-			{
-				ctx.flags |= S5FLAG_USERPASS_AUTH;
-				char *line = NULL;
-				size_t len;
-				ssize_t read;
-				FILE *uf = fopen(optarg, "r");
-				if (uf == NULL)
-					die("fopen:");
-
-				while ((read = getline(&line, &len, uf)) != -1) {
-					if (line[read - 1] == '\n') {
-						line[read - 1] = 0;
-						read--;
-					}
-					if (read == 0) continue;
-					if (add_userpass(line) != 0)
-						die("failed to add user:pass `%s`", line);
-				}
-
-				if (line) free(line);
-				fclose(uf);
-			}
+			ctx.flags |= S5FLAG_USERPASS_AUTH;
+			load_userpass_file(optarg);
 			break;
 		case 'u':
 			ctx.flags |= S5FLAG_USERPASS_AUTH;
-			if (add_userpass(optarg) != 0)
-				die("failed to add user:pass `%s`", optarg);
+			add_userpass(optarg);
 			break;
 		case 'w':
 			nworkers = atoi(optarg);
