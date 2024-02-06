@@ -24,38 +24,28 @@ struct S5ServerCtx {
 
 typedef struct S5ServerCtx S5ServerCtx;
 
-enum S5ServerFlags {
-	S5FLAG_NO_AUTH       = 1 << 0,
-	S5FLAG_USERPASS_AUTH = 1 << 1,
-};
+#define S5FLAG_NO_AUTH       (1 << 0)
+#define S5FLAG_USERPASS_AUTH (1 << 1)
 
-enum S5AuthMethods {
-	S5NO_AUTH             = 0,
-	S5USERPASS_AUTH       = 2,
-	S5INVALID_AUTH_METHOD = 0xff,
-};
+#define S5NO_AUTH             0
+#define S5USERPASS_AUTH       2
+#define S5INVALID_AUTH_METHOD 0xff
 
-enum S5Cmds {
-	S5CMD_CONNECT       = 1,
-	S5CMD_BIND          = 2,
-	S5CMD_UDP_ASSOCIATE = 3,
-};
+#define S5CMD_CONNECT       1
+#define S5CMD_BIND          2
+#define S5CMD_UDP_ASSOCIATE 3
 
-enum S5Atyps {
-	S5ATYP_IPV4         = 1,
-	S5ATYP_DOMAIN_NAME  = 3,
-	S5ATYP_IPV6         = 4,
-};
+#define S5ATYP_IPV4         1
+#define S5ATYP_DOMAIN_NAME  3
+#define S5ATYP_IPV6         4
 
-enum S5Reps {
-	S5REP_OK                  = 0,
-	S5REP_FAIL                = 1,
-	S5REP_NETWORK_UNREACHABLE = 3,
-	S5REP_HOST_UNREACHABLE    = 4,
-	S5REP_CONNECTION_REFUSED  = 5,
-	S5REP_CMD_NOT_SUPPORTED   = 7,
-	S5REP_ATYP_NOT_SUPPORTED  = 8,
-};
+#define S5REP_OK                  0
+#define S5REP_FAIL                1
+#define S5REP_NETWORK_UNREACHABLE 3
+#define S5REP_HOST_UNREACHABLE    4
+#define S5REP_CONNECTION_REFUSED  5
+#define S5REP_CMD_NOT_SUPPORTED   7
+#define S5REP_ATYP_NOT_SUPPORTED  8
 
 // int functions below return 0 on success
 int s5_server_ctx_init(S5ServerCtx *ctx);
