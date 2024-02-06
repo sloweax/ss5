@@ -21,6 +21,13 @@ int run = 1;
 int serverfd;
 S5ServerCtx ctx;
 
+static void cleanup()
+{
+	free(workers);
+	s5_server_ctx_free(&ctx);
+	close(serverfd);
+}
+
 static void add_userpass(const char *userpass)
 {
 	char user[256 + 1];
@@ -159,9 +166,8 @@ exit:
 
 	printf("stopped worker %d\n", getpid());
 
-	free(workers);
-	close(serverfd);
-	s5_server_ctx_free(&ctx);
+	cleanup();
+
 	_Exit(r);
 }
 
@@ -247,13 +253,10 @@ int main(int argc, char **argv)
 		printf("starting worker %d\n", pid);
 	}
 
-	s5_server_ctx_free(&ctx);
-
 	for (int i = 0; i < nworkers; i++)
 		wait(NULL);
 
-	close(serverfd);
-	free(workers);
+	cleanup();
 
 	return 0;
 }
