@@ -143,7 +143,7 @@ static void usage(int argc, char **argv)
 {
 	(void)argc;
 	printf(
-		"usage: %s [OPTION]...\n"
+		"usage: %s [OPTION...]\n"
 		"OPTION:\n"
 		"     -h                  shows usage and exits\n"
 		"     -n                  allow NO AUTH\n"

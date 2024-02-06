@@ -1,6 +1,6 @@
 ## Usage
 ```
-usage: ./socks5-server [OPTION]...
+usage: ./socks5-server [OPTION...]
 OPTION:
      -h                  shows usage and exits
      -n                  allow NO AUTH
