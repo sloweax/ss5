@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <netdb.h>
 #include <signal.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -99,7 +100,21 @@ static void int_handler(int sig)
 static void worker_int_handler(int sig)
 {
 	(void)sig;
+	if (nworkers == 1) {
+		if (shutdown(serverfd, SHUT_RD) != 0)
+			die("shutdown:");
+	}
 	run = 0;
+}
+
+static void weprintf(const char *fmt, ...)
+{
+	va_list ap;
+	va_start(ap, fmt);
+	if (nworkers != 1)
+		fprintf(stderr, "worker %d: ", getpid());
+	veprintf(fmt, ap);
+	va_end(ap);
 }
 
 static int work()
@@ -109,8 +124,9 @@ static int work()
 	socklen_t cli_len = sizeof(cli);
 
 	if (signal(SIGINT, worker_int_handler) == SIG_ERR) {
-		eprintf("worker %d: signal:", getpid());
-		kill(getppid(), SIGINT);
+		weprintf("signal:");
+		if (nworkers != 1)
+			kill(getppid(), SIGINT);
 		r = 1;
 		goto exit;
 	}
@@ -125,8 +141,9 @@ static int work()
 		}
 
 		if (cfd == -1) {
-			eprintf("worker %d: accept:", getpid());
-			kill(getppid(), SIGINT);
+			weprintf("accept:");
+			if (nworkers != 1)
+				kill(getppid(), SIGINT);
 			r = 1;
 			goto exit;
 		}
@@ -237,6 +254,8 @@ int main(int argc, char **argv)
 		die("no auth method provided, exiting\n%s -h for help", argv[0]);
 
 	printf("listening on %s:%s\n", addr, port);
+
+	if (nworkers == 1) return work();
 
 	if (signal(SIGINT, int_handler) == SIG_ERR)
 		die("signal:");
