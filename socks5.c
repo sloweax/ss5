@@ -427,13 +427,18 @@ free_error:
 static int get_request(int fd, S5Cmd *cmd, S5Atyp *atyp, S5Rep *rep)
 {
 	*rep = S5REP_FAIL;
-	unsigned char ver, rsv;
+	unsigned char ver;
+	unsigned char buf[4];
 
-	if (read(fd, &ver, sizeof(ver)) != sizeof(ver)) return 1;
-	if (read(fd, cmd, sizeof(*cmd)) != sizeof(*cmd)) return 1;
-	if (read(fd, &rsv, sizeof(rsv)) != sizeof(rsv)) return 1;
-	if (read(fd, atyp, sizeof(*atyp)) != sizeof(*atyp)) return 1;
+	if (read(fd, buf, sizeof(buf)) != sizeof(buf)) return 1;
+
+	ver = buf[0];
+	*cmd = buf[1];
+	// skip rsv
+	*atyp = buf[3];
+
 	if (ver != 5) goto exit;
+
 	*rep = S5REP_OK;
 exit:
 	S5DLOGF("request cmd: %s atyp: %s\n", s5_cmd_str(*cmd), s5_atyp_str(*atyp));
