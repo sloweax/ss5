@@ -463,21 +463,24 @@ static int handle_auth_method(const S5ServerCtx *ctx, int fd, S5AuthMethod metho
 
 static int negotiate_auth_method(const S5ServerCtx *ctx, int fd, S5AuthMethod *method)
 {
+	unsigned char buf[2 + 256];
 	unsigned char ver, nmethods;
-	S5AuthMethod methods[0xff], smethod;
+	S5AuthMethod smethod, *methods;
 
-	if (read(fd, &ver, sizeof(ver)) != sizeof(ver)) return 1;
+	if (read(fd, buf, sizeof(buf)) < 3) return 1;
+
+	ver = buf[0];
+	nmethods = buf[1];
+	methods = &buf[2];
+
 	if (ver != 5) return 1;
-	if (read(fd, &nmethods, sizeof(nmethods)) != sizeof(nmethods)) return 1;
-	if (read(fd, methods, nmethods) != nmethods) return 1;
 
 	smethod = choose_auth_method(ctx, methods, nmethods);
 
-	unsigned char buf[2];
 	buf[0] = ver;
 	buf[1] = smethod;
 
-	if (write(fd, buf, sizeof(buf)) != sizeof(buf)) return 1;
+	if (write(fd, buf, 2) != 2) return 1;
 
 	if (handle_auth_method(ctx, fd, smethod) != 0)
 		return 1;
