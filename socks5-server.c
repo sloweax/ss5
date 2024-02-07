@@ -102,14 +102,9 @@ static void worker_int_handler(int sig)
 	run = 0;
 }
 
-static int create_worker()
+static int work()
 {
 	int r = 0;
-	pid_t pid = efork();
-
-	if (pid != 0)
-		return pid;
-
 	struct sockaddr_storage cli;
 	socklen_t cli_len = sizeof(cli);
 
@@ -159,11 +154,19 @@ static int create_worker()
 
 exit:
 
-	printf("stopped worker %d\n", getpid());
-
 	cleanup();
 
-	_Exit(r);
+	return r;
+}
+
+static int create_worker()
+{
+	pid_t pid = efork();
+
+	if (pid != 0)
+		return pid;
+
+	_Exit(work());
 }
 
 static void usage(int argc, char **argv)
@@ -240,8 +243,10 @@ int main(int argc, char **argv)
 	if (signal(SIGINT, int_handler) == SIG_ERR)
 		die("signal:");
 
+	pid_t pid;
+
 	for (int i = 0; i < nworkers; i++) {
-		pid_t pid = create_worker();
+		pid = create_worker();
 		workers[i] = pid;
 		printf("starting worker %d\n", pid);
 	}
@@ -249,7 +254,8 @@ int main(int argc, char **argv)
 	int child_exit_status, exit_status = 0;
 
 	for (int i = 0; i < nworkers; i++) {
-		wait(&child_exit_status);
+		pid = wait(&child_exit_status);
+		printf("stopped worker %d exit status:%d\n", pid, WEXITSTATUS(child_exit_status));
 		if (child_exit_status) exit_status = 1;
 	}
 
