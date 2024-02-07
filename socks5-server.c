@@ -109,8 +109,7 @@ static int work()
 	socklen_t cli_len = sizeof(cli);
 
 	if (signal(SIGINT, worker_int_handler) == SIG_ERR) {
-		fprintf(stderr, "worker %d: signal: ", getpid());
-		perror(NULL);
+		eprintf("worker %d: signal:", getpid());
 		kill(getppid(), SIGINT);
 		r = 1;
 		goto exit;
@@ -126,8 +125,7 @@ static int work()
 		}
 
 		if (cfd == -1) {
-			fprintf(stderr, "worker %d: accept: ", getpid());
-			perror(NULL);
+			eprintf("worker %d: accept:", getpid());
 			kill(getppid(), SIGINT);
 			r = 1;
 			goto exit;
