@@ -334,7 +334,7 @@ static int connect_dst(struct sockaddr_storage *sa, int type, int proto)
 
 static int reply_request(int fd, S5Rep rep, S5Atyp atyp, struct sockaddr_storage *sa)
 {
-	unsigned char buf[4 + 8 + 2], *tmp;
+	unsigned char buf[4 + 16 + 2], *tmp;
 	tmp = buf;
 	*tmp++ = 5; // version
 	*tmp++ = rep;
@@ -349,8 +349,8 @@ static int reply_request(int fd, S5Rep rep, S5Atyp atyp, struct sockaddr_storage
 		tmp += 2;
 		break;
 	case AF_INET6:
-		memcpy(tmp, &((struct sockaddr_in6 *)sa)->sin6_addr, 8);
-		tmp += 8;
+		memcpy(tmp, &((struct sockaddr_in6 *)sa)->sin6_addr, 16);
+		tmp += 16;
 		memcpy(tmp, &((struct sockaddr_in6 *)sa)->sin6_port, 2);
 		tmp += 2;
 		break;
