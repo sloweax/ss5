@@ -246,10 +246,14 @@ int main(int argc, char **argv)
 		printf("starting worker %d\n", pid);
 	}
 
-	for (int i = 0; i < nworkers; i++)
-		wait(NULL);
+	int child_exit_status, exit_status = 0;
+
+	for (int i = 0; i < nworkers; i++) {
+		wait(&child_exit_status);
+		if (child_exit_status) exit_status = 1;
+	}
 
 	cleanup();
 
-	return 0;
+	return exit_status;
 }
