@@ -68,9 +68,7 @@ static void load_userpass_file(const char *filename)
 	char *line = NULL;
 	size_t len;
 	ssize_t read;
-	FILE *f = fopen(filename, "r");
-	if (f == NULL)
-		die("fopen:");
+	FILE *f = efopen(filename, "r");
 
 	while ((read = getline(&line, &len, f)) != -1) {
 		if (line[read - 1] == '\n') {
@@ -107,10 +105,7 @@ static void worker_int_handler(int sig)
 static int create_worker()
 {
 	int r = 0;
-	pid_t pid = fork();
-
-	if (pid == -1)
-		die("fork:");
+	pid_t pid = efork();
 
 	if (pid != 0)
 		return pid;
@@ -221,9 +216,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	workers = malloc(nworkers * sizeof(pid_t));
-	if (workers == NULL)
-		die("malloc:");
+	workers = emalloc(nworkers * sizeof(pid_t));
 
 	serverfd = s5_create_server(addr, port, BACKLOG, IPPROTO_TCP);
 	if (serverfd == -1) {
