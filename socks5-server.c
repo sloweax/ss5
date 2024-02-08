@@ -24,7 +24,8 @@ S5ServerCtx ctx;
 
 static void cleanup()
 {
-	free(workers);
+	if (workers)
+		free(workers);
 	s5_server_ctx_free(&ctx);
 	close(serverfd);
 }
@@ -234,8 +235,6 @@ int main(int argc, char **argv)
 		}
 	}
 
-	workers = emalloc(nworkers * sizeof(pid_t));
-
 	serverfd = s5_create_server(addr, port, BACKLOG, IPPROTO_TCP);
 	if (serverfd == -1) {
 		if (errno)
@@ -256,6 +255,8 @@ int main(int argc, char **argv)
 	printf("listening on %s:%s\n", addr, port);
 
 	if (nworkers == 1) return work();
+
+	workers = emalloc(nworkers * sizeof(pid_t));
 
 	if (signal(SIGINT, int_handler) == SIG_ERR)
 		die("signal:");
