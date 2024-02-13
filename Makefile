@@ -1,5 +1,6 @@
 CC=cc
 CFLAGS=-Wall -Wextra -O2
+BINDSTPATH=/usr/local/bin
 
 all: socks5-server
 
@@ -15,4 +16,10 @@ debug: all
 clean:
 	rm -f *.o socks5-server
 
-.PHONY: clean debug all
+install: all
+	cp socks5-server $(BINDSTPATH)
+
+uninstall:
+	rm -f $(BINDSTPATH)/socks5-server
+
+.PHONY: clean debug all install uninstall
