@@ -203,6 +203,9 @@ static void usage(int argc, char **argv)
 
 int main(int argc, char **argv)
 {
+	setlinebuf(stdout);
+	setlinebuf(stderr);
+
 	char *addr = ADDR, *port = PORT;
 	int opt;
 
