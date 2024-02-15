@@ -11,6 +11,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#define VERSION "0.1.0"
 #define PORT "1080"
 #define ADDR "0.0.0.0"
 #define BACKLOG 8
@@ -192,6 +193,7 @@ static void usage(int argc, char **argv)
 		"usage: %s [OPTION...]\n"
 		"OPTION:\n"
 		"     -h                  shows usage and exits\n"
+		"     -v                  shows version and exits\n"
 		"     -n                  allow NO AUTH\n"
 		"     -u user:pass        add user:pass\n"
 		"     -U file             add all user:pass from file\n"
@@ -212,7 +214,7 @@ int main(int argc, char **argv)
 	if (s5_server_ctx_init(&ctx) != 0)
 		die("socks5_server_ctx_init:");
 
-	while((opt = getopt(argc, argv, ":a:p:hnu:U:w:")) != -1) {
+	while((opt = getopt(argc, argv, ":a:p:hnu:U:w:v")) != -1) {
 		switch(opt) {
 		case 'U':
 			ctx.flags |= S5FLAG_USERPASS_AUTH;
@@ -221,6 +223,10 @@ int main(int argc, char **argv)
 		case 'u':
 			ctx.flags |= S5FLAG_USERPASS_AUTH;
 			add_userpass(optarg);
+			break;
+		case 'v':
+			printf("%s %s\n", argv[0], VERSION);
+			return 0;
 			break;
 		case 'w':
 			nworkers = atoi(optarg);

@@ -3,6 +3,7 @@
 usage: ./socks5-server [OPTION...]
 OPTION:
      -h                  shows usage and exits
+     -v                  shows version and exits
      -n                  allow NO AUTH
      -u user:pass        add user:pass
      -U file             add all user:pass from file
