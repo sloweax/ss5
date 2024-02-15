@@ -1,6 +1,6 @@
 ## Usage
 ```
-usage: ./socks5-server [OPTION...]
+usage: ./ss5 [OPTION...]
 OPTION:
      -h                  shows usage and exits
      -v                  shows version and exits
@@ -15,8 +15,8 @@ OPTION:
 ## Build
 Make sure you have `gcc` and `make` installed
 ```
-git clone https://github.com/sloweax/socks5-server
-cd socks5-server
+git clone https://github.com/sloweax/ss5
+cd ss5
 make
 ```
 
