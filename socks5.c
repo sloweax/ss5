@@ -19,7 +19,7 @@ static int auth_userpass(const S5ServerCtx *ctx, int fd);
 static int bridge_fd(int fd1, int fd2);
 static int connect_dst(struct sockaddr_storage *sa, int type, int proto);
 static int resolve_atyp(int fd, S5Atyp *atyp, S5Rep *rep, struct sockaddr_storage *sa);
-static int get_request(int fd, S5Cmd *cmd, S5Atyp *atyp, S5Rep *rep);
+static int get_request(int fd, S5Cmd *cmd, S5Atyp *atyp);
 static int reply_request(int fd, S5Rep rep, S5Atyp atyp, struct sockaddr_storage *sa);
 
 void s5_server_ctx_free(S5ServerCtx *ctx)
@@ -135,16 +135,16 @@ int s5_server_handler(const S5ServerCtx *ctx, int fd)
 	int dstfd = -1;
 	S5Cmd cmd;
 	S5Atyp atyp;
-	S5Rep rep;
+	S5Rep rep = S5REP_OK;
 	struct sockaddr_storage sa;
 	bzero(&sa, sizeof(sa));
 
-	if (get_request(fd, &cmd, &atyp, &rep) != 0) {
+	if (get_request(fd, &cmd, &atyp) != 0) {
 		S5DLOGF("get_request failed\n");
 		return 1;
 	}
 
-	if (rep != S5REP_OK) goto reply;
+	S5DLOGF("request cmd: %s atyp: %s\n", s5_cmd_str(cmd), s5_atyp_str(atyp));
 
 	if (!is_valid_cmd(cmd))   rep = S5REP_CMD_NOT_SUPPORTED;
 	if (!is_valid_atyp(atyp)) rep = S5REP_ATYP_NOT_SUPPORTED;
@@ -424,9 +424,8 @@ free_error:
 	return 1;
 }
 
-static int get_request(int fd, S5Cmd *cmd, S5Atyp *atyp, S5Rep *rep)
+static int get_request(int fd, S5Cmd *cmd, S5Atyp *atyp)
 {
-	*rep = S5REP_FAIL;
 	unsigned char ver;
 	unsigned char buf[4];
 
@@ -437,11 +436,8 @@ static int get_request(int fd, S5Cmd *cmd, S5Atyp *atyp, S5Rep *rep)
 	// skip rsv
 	*atyp = buf[3];
 
-	if (ver != 5) goto exit;
+	if (ver != 5) return 1;
 
-	*rep = S5REP_OK;
-exit:
-	S5DLOGF("request cmd: %s atyp: %s\n", s5_cmd_str(*cmd), s5_atyp_str(*atyp));
 	return 0;
 }
 
