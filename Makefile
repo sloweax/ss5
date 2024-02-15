@@ -17,6 +17,7 @@ clean:
 	rm -f *.o socks5-server
 
 install: all
+	mkdir -p $(BINDSTPATH)
 	cp socks5-server $(BINDSTPATH)
 
 uninstall:
