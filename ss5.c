@@ -216,9 +216,9 @@ int main(int argc, char **argv)
 		die("socks5_server_ctx_init:");
 
 	static struct option long_options[] = {
-		{"help"         , optional_argument, NULL, 'h'},
-		{"version"      , optional_argument, NULL, 'v'},
-		{"no-auth"      , optional_argument, NULL, 'n'},
+		{"help"         , no_argument      , NULL, 'h'},
+		{"version"      , no_argument      , NULL, 'v'},
+		{"no-auth"      , no_argument      , NULL, 'n'},
 		{"addr"         , required_argument, NULL, 'a'},
 		{"port"         , required_argument, NULL, 'p'},
 		{"userpass"     , required_argument, NULL, 'u'},
