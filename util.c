@@ -9,7 +9,7 @@ FILE *efopen(const char *name, const char *mode)
 {
 	FILE *f = fopen(name, mode);
 	if (f == NULL)
-		die("fopen:");
+		die("fopen: %s:", name);
 	return f;
 }
 
