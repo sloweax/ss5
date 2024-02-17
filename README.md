@@ -1,15 +1,15 @@
 ## Usage
 ```
-usage: ./ss5 [OPTION...]
+usage: ss5 [OPTION...]
 OPTION:
-     -h                  shows usage and exits
-     -v                  shows version and exits
-     -n                  allow NO AUTH
-     -u user:pass        add user:pass
-     -U file             add all user:pass from file
-     -p port             listen on port (1080 by default)
-     -a addr             bind on addr (0.0.0.0 by default)
-     -w workers          number of workers (4 by default)
+     -h,--help                      shows usage and exits
+     -v,--version                   shows version and exits
+     -n,--no-auth                   allow NO AUTH
+     -u,--userpass USER:PASS        add USER:PASS
+     -U,--userpass-file FILE        add all user:pass from FILE
+     -p,--port PORT                 listen on PORT (1080 by default)
+     -a,--addr ADDR                 bind on ADDR (0.0.0.0 by default)
+     -w,--workers WORKERS           number of WORKERS (4 by default)
 ```
 
 ## Build

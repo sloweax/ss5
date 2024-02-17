@@ -2,6 +2,7 @@
 #include "util.h"
 #include <arpa/inet.h>
 #include <errno.h>
+#include <getopt.h>
 #include <netdb.h>
 #include <signal.h>
 #include <stdarg.h>
@@ -11,7 +12,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#define VERSION "0.1.0"
+#define VERSION "0.2.0"
 #define PORT "1080"
 #define ADDR "0.0.0.0"
 #define BACKLOG 8
@@ -192,14 +193,14 @@ static void usage(int argc, char **argv)
 	printf(
 		"usage: %s [OPTION...]\n"
 		"OPTION:\n"
-		"     -h                  shows usage and exits\n"
-		"     -v                  shows version and exits\n"
-		"     -n                  allow NO AUTH\n"
-		"     -u user:pass        add user:pass\n"
-		"     -U file             add all user:pass from file\n"
-		"     -p port             listen on port ("PORT" by default)\n"
-		"     -a addr             bind on addr ("ADDR" by default)\n"
-		"     -w workers          number of workers (%d by default)\n"
+		"     -h,--help                      shows usage and exits\n"
+		"     -v,--version                   shows version and exits\n"
+		"     -n,--no-auth                   allow NO AUTH\n"
+		"     -u,--userpass USER:PASS        add USER:PASS\n"
+		"     -U,--userpass-file FILE        add all user:pass from FILE\n"
+		"     -p,--port PORT                 listen on PORT ("PORT" by default)\n"
+		"     -a,--addr ADDR                 bind on ADDR ("ADDR" by default)\n"
+		"     -w,--workers WORKERS           number of WORKERS (%d by default)\n"
 	, argv[0], WORKERS);
 }
 
@@ -214,7 +215,19 @@ int main(int argc, char **argv)
 	if (s5_server_ctx_init(&ctx) != 0)
 		die("socks5_server_ctx_init:");
 
-	while((opt = getopt(argc, argv, ":a:p:hnu:U:w:v")) != -1) {
+	static struct option long_options[] = {
+		{"help"         , optional_argument, NULL, 'h'},
+		{"version"      , optional_argument, NULL, 'v'},
+		{"no-auth"      , optional_argument, NULL, 'n'},
+		{"addr"         , required_argument, NULL, 'a'},
+		{"port"         , required_argument, NULL, 'p'},
+		{"userpass"     , required_argument, NULL, 'u'},
+		{"userpass-file", required_argument, NULL, 'U'},
+		{"workers"      , required_argument, NULL, 'w'},
+		{NULL           , 0                , NULL, 0}
+	};
+
+	while((opt = getopt_long(argc, argv, ":hvna:p:u:U:w:", long_options, NULL)) != -1) {
 		switch(opt) {
 		case 'U':
 			ctx.flags |= S5FLAG_USERPASS_AUTH;
@@ -231,7 +244,7 @@ int main(int argc, char **argv)
 		case 'w':
 			nworkers = atoi(optarg);
 			if (nworkers <= 0)
-				die("`-w %s` is invalid\n%s -h for help", optarg, argv[0]);
+				die("%s %s is invalid", argv[optind-2], optarg, argv[0]);
 			break;
 		case 'n': ctx.flags |= S5FLAG_NO_AUTH; break;
 		case 'a': addr = optarg; break;
@@ -240,7 +253,7 @@ int main(int argc, char **argv)
 			usage(argc, argv);
 			return 0;
 		case '?':
-			die("unknown option -%c\n%s -h for help", optopt, argv[0]);
+			die("unknown option %s\n%s -h for help", argv[optind-1], argv[0]);
 		}
 	}
 
