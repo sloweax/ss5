@@ -223,8 +223,7 @@ static int bridge_fd(int fd1, int fd2)
 		int e = poll(fds, 2, 2000);
 		if (e == -1) return 1;
 
-		if ((fds[0].revents & (POLLHUP | POLLERR | POLLNVAL)) ||
-		    (fds[1].revents & (POLLHUP | POLLERR | POLLNVAL)))
+		if ((fds[0].revents | fds[1].revents) & (POLLHUP | POLLERR | POLLNVAL))
 			return 1;
 
 		if (fds[0].revents & POLLIN) {
